@@ -1,0 +1,12 @@
+# OASIS_START
+# DO NOT EDIT (digest: 05b0cd6007c00b58e15c27aae5fe6991)
+version = "0.1"
+description = "Bindings to libdevicemapper"
+requires = "rpclib rpclib.syntax"
+archive(byte) = "camldm.cma"
+archive(byte, plugin) = "camldm.cma"
+archive(native) = "camldm.cmxa"
+archive(native, plugin) = "camldm.cmxs"
+exists_if = "camldm.cma"
+# OASIS_STOP
+

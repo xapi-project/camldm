@@ -1,0 +1,16 @@
+OASISFormat:  0.3
+Name:         camldm
+Version:      0.1
+Synopsis:     Bindings to libdevicemapper
+License:      LGPL-2.1 with OCaml linking exception
+Authors:      various
+Copyrights:   (C) 2012 Citrix
+BuildTools:   ocamlbuild
+Plugins:      DevFiles (0.3), META (0.3)
+
+Library camldm
+  Path: lib
+  Modules: Camldm
+  CSources: camldm_stubs.c
+  BuildDepends: rpclib, rpclib.syntax
+
