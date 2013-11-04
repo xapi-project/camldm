@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 31019235f639af195a82a56c00a438af)
+# DO NOT EDIT (digest: 325c9cc56b3537fc1e0bd11908108e3c)
 # Ignore VCS directories, you can use the same kind of rule outside 
 # OASIS_START/STOP if you want to exclude directories that contains 
 # useless stuff for the build process
@@ -15,6 +15,11 @@
 "_darcs": not_hygienic
 # Library camldm
 "lib/camldm.cmxs": use_camldm
+<lib/camldm.{cma,cmxa}>: oasis_library_camldm_cclib
+"lib/libcamldm_stubs.lib": oasis_library_camldm_cclib
+"lib/dllcamldm_stubs.dll": oasis_library_camldm_cclib
+"lib/libcamldm_stubs.a": oasis_library_camldm_cclib
+"lib/dllcamldm_stubs.so": oasis_library_camldm_cclib
 <lib/camldm.{cma,cmxa}>: use_libcamldm_stubs
 <lib/*.ml{,i}>: pkg_rpclib
 <lib/*.ml{,i}>: pkg_rpclib.syntax

@@ -12,5 +12,6 @@ Library camldm
   Path: lib
   Modules: Camldm
   CSources: camldm_stubs.c
+  CCLib: -ldevmapper
   BuildDepends: rpclib, rpclib.syntax
 
