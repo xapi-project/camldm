@@ -15,7 +15,7 @@ install: build
 
 .PHONY: test
 test: build
-	ocaml setup.ml -test
+	sudo ocaml setup.ml -test
 
 .PHONY: uninstall
 uninstall:
