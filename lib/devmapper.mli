@@ -17,7 +17,7 @@ module Lowlevel: sig
 
   type dm_task
 
-  val dm_task_create: int -> dm_task
+  val dm_task_create: int -> dm_task option
 
   val dm_task_destroy: dm_task -> unit
 

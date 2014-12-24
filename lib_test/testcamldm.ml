@@ -67,8 +67,11 @@ open OUnit
 
 let create_destroy () =
   let open Devmapper.Lowlevel in
-  let dmt = dm_task_create 0 in
-  dm_task_destroy dmt
+  match dm_task_create 0 with
+  | None ->
+    failwith "dm_task_create returned NULL: check permissions?"
+  | Some dmt ->
+    dm_task_destroy dmt
 
 let _ =
   let suite = "devicemapper" >:::

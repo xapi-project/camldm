@@ -23,8 +23,9 @@ module Lowlevel = struct
   type dm_task = [ `Dm_task ] structure ptr
 
   let dm_task : dm_task typ = ptr (structure "dm_task")
+  let dm_task_opt : dm_task option typ = ptr_opt (structure "dm_task")
 
-  let dm_task_create = foreign "dm_task_create" (int @-> returning dm_task)
+  let dm_task_create = foreign "dm_task_create" (int @-> returning dm_task_opt)
 
   let dm_task_destroy = foreign "dm_task_destroy" (dm_task @-> returning void)
 end
