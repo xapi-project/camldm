@@ -10,10 +10,10 @@ Plugins:      DevFiles (0.3), META (0.3)
 
 Library camldm
   Path: lib
-  Modules: Camldm
+  Modules: Camldm, Devmapper
   CSources: camldm_stubs.c
   CCLib: -ldevmapper
-  BuildDepends: rpclib, rpclib.syntax
+  BuildDepends: rpclib, rpclib.syntax, ctypes, ctypes.foreign
 
 Executable lib_test
   CompiledObject:     best

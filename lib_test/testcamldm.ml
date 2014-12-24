@@ -13,6 +13,8 @@
  *)
 open Camldm
 
+(*
+(* This test nolonger compiles *)
 let _ =
   let name = Sys.argv.(1) in
   let start = Int64.of_string Sys.argv.(2) in
@@ -60,5 +62,18 @@ let _ =
 
   (*List.iter (fun (a,b,c,d,e,f) -> Printf.printf "%d %d %Ld %Ld %s %s" a b c d e f) l; *)
 (*  Camldm.remove name*)
+*)
+open OUnit
 
+let create_destroy () =
+  let open Devmapper.Lowlevel in
+  let dmt = dm_task_create 0 in
+  dm_task_destroy dmt
+
+let _ =
+  let suite = "devicemapper" >:::
+    [
+      "create_destroy" >:: create_destroy;
+    ] in
+  run_test_tt suite
     
