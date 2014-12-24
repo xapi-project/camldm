@@ -4,15 +4,18 @@ build: setup.data
 	ocaml setup.ml -build
 
 setup.data: setup.ml
-	ocaml setup.ml -configure
+	ocaml setup.ml -configure --enable-tests
 
 setup.ml: _oasis
 	oasis setup
 
 .PHONY: install
 install: build
-	mkdir -p ${BINDIR}
-	install -m 755 newcli.native ${BINDIR}/xe || echo "Failed to install xe"
+	ocaml setup.ml -install
+
+.PHONY: test
+test: build
+	ocaml setup.ml -test
 
 .PHONY: uninstall
 uninstall:

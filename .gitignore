@@ -10,3 +10,4 @@ META
 setup.ml
 myocamlbuild.ml
 _tags
+configure
