@@ -1,38 +1,27 @@
-# OASIS_START
-# DO NOT EDIT (digest: bc1e05bfc8b39b664f29dae8dbd3ebbb)
 
-SETUP = ocaml setup.ml
-
+.PHONY: build
 build: setup.data
-	$(SETUP) -build $(BUILDFLAGS)
+	ocaml setup.ml -build
 
-doc: setup.data build
-	$(SETUP) -doc $(DOCFLAGS)
+setup.data: setup.ml
+	ocaml setup.ml -configure
 
-test: setup.data build
-	$(SETUP) -test $(TESTFLAGS)
+setup.ml: _oasis
+	oasis setup
 
-all: 
-	$(SETUP) -all $(ALLFLAGS)
+.PHONY: install
+install: build
+	mkdir -p ${BINDIR}
+	install -m 755 newcli.native ${BINDIR}/xe || echo "Failed to install xe"
 
-install: setup.data
-	$(SETUP) -install $(INSTALLFLAGS)
+.PHONY: uninstall
+uninstall:
+	rm -f ${BINDIR}/xe
 
-uninstall: setup.data
-	$(SETUP) -uninstall $(UNINSTALLFLAGS)
+.PHONY: clean
+clean:
+	ocaml setup.ml -clean
 
-reinstall: setup.data
-	$(SETUP) -reinstall $(REINSTALLFLAGS)
-
-clean: 
-	$(SETUP) -clean $(CLEANFLAGS)
-
-distclean: 
-	$(SETUP) -distclean $(DISTCLEANFLAGS)
-
-setup.data:
-	$(SETUP) -configure $(CONFIGUREFLAGS)
-
-.PHONY: build doc test all install uninstall reinstall clean distclean configure
-
-# OASIS_STOP
+.PHONY: distclean
+distclean: clean
+	rm -f setup.log setup.data setup.ml _tags myocamlbuild.ml
