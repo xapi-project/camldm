@@ -52,4 +52,13 @@ module Lowlevel: sig
   val dm_task_destroy: dm_task -> unit
   (** [dm_task_destroy task] cleans up resources associated with [task]
       and deallocates it. The [task] must not be used again. *)
+
+  val dm_task_set_name: dm_task -> string -> bool
+  (** [dm_task_set_name task name] associate [name] with [task], returning
+      true if successful. *)
+
+  val dm_task_set_uuid: dm_task -> string -> bool
+  (** [dm_task_set_uuid task uuid] associate [uuid] with [task], returning
+      true if successful. *)
+
 end

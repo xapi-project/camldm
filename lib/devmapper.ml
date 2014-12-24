@@ -51,4 +51,9 @@ module Lowlevel = struct
   let dm_task_create kind = dm_task_create' (dm_kind_to_int kind)
 
   let dm_task_destroy = foreign "dm_task_destroy" (dm_task @-> returning void)
+
+  let bool = view ~read:((<>)0) ~write:(fun b -> compare b false) int
+
+  let dm_task_set_name = foreign "dm_task_set_name" (dm_task @-> string @-> returning bool)
+  let dm_task_set_uuid = foreign "dm_task_set_uuid" (dm_task @-> string @-> returning bool)
 end

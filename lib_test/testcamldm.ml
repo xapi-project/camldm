@@ -65,18 +65,42 @@ let _ =
 *)
 open OUnit
 
-let create_destroy () =
+let finally f g =
+  try
+    let result = f () in
+    g ();
+    result
+  with e ->
+    g ();
+    raise e
+
+let with_task kind f =
   let open Devmapper.Lowlevel in
   match dm_task_create DM_DEVICE_CREATE with
   | None ->
     failwith "dm_task_create returned NULL: check permissions?"
   | Some dmt ->
-    dm_task_destroy dmt
+    finally
+      (fun () -> f dmt)
+      (fun () -> dm_task_destroy dmt)
+
+let set_name () =
+  let open Devmapper.Lowlevel in
+  with_task DM_DEVICE_CREATE
+    (fun dmt ->
+      if not (dm_task_set_name dmt "hello")
+      then failwith "dm_task_set_name";
+      if not (dm_task_set_uuid dmt "there")
+      then failwith "dm_task_set_uuid";
+    )
+
+let create_destroy () = with_task Devmapper.Lowlevel.DM_DEVICE_CREATE (fun _ -> ())
 
 let _ =
   let suite = "devicemapper" >:::
     [
       "create_destroy" >:: create_destroy;
+      "set name and uuid" >:: set_name;
     ] in
   run_test_tt suite
     
