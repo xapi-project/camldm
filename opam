@@ -11,6 +11,8 @@ remove: [
 depends: [
   "ocamlfind"
   "rpc" {>= "1.5.0"}
+  "ctypes"
+  "oasis"
 ] 
 os: ["linux"]
 depexts: [
