@@ -13,6 +13,7 @@ depends: [
   "rpc" {>= "1.5.0"}
   "ctypes"
   "oasis"
+  "ounit"
 ] 
 os: ["linux"]
 depexts: [
