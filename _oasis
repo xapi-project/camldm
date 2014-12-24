@@ -15,3 +15,16 @@ Library camldm
   CCLib: -ldevmapper
   BuildDepends: rpclib, rpclib.syntax
 
+Executable lib_test
+  CompiledObject:     best
+  Path:               lib_test
+  MainIs:             testcamldm.ml
+  Build$:             flag(tests)
+  Custom:             true
+  Install:            false
+  BuildDepends:       camldm, oUnit
+
+Test lib_test
+  Run$:               flag(tests)
+  Command:            $lib_test
+  WorkingDirectory:   lib_test
