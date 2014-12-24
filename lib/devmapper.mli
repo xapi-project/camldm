@@ -16,9 +16,18 @@ module Lowlevel: sig
   (** A raw, unsafe interface to the C library *)
 
   type dm_task
+  (** All operations are phrased as 'tasks' which are created,
+      configured, run and then destroyed. *)
 
   val dm_task_create: int -> dm_task option
+  (** [dm_task_create kind] opens the device mapper control interface
+      and initialises a task [kind]. This will return None if the
+      caller doesn't have permission to talk to the control interface
+      or if there is a protocol mismatch between userspace and kernel
+      space. No programmatic diagnostics are available but the C library
+      will print errors on stderr. *)
 
   val dm_task_destroy: dm_task -> unit
-
+  (** [dm_task_destroy task] cleans up resources associated with [task]
+      and deallocates it. The [task] must not be used again. *)
 end
