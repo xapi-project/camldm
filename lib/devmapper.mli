@@ -19,7 +19,29 @@ module Lowlevel: sig
   (** All operations are phrased as 'tasks' which are created,
       configured, run and then destroyed. *)
 
-  val dm_task_create: int -> dm_task option
+  type kind =
+  | DM_DEVICE_CREATE
+  | DM_DEVICE_RELOAD
+  | DM_DEVICE_REMOVE
+  | DM_DEVICE_REMOVE_ALL
+  | DM_DEVICE_SUSPEND
+  | DM_DEVICE_RESUME
+  | DM_DEVICE_INFO
+  | DM_DEVICE_DEPS
+  | DM_DEVICE_RENAME
+  | DM_DEVICE_VERSION
+  | DM_DEVICE_STATUS
+  | DM_DEVICE_TABLE
+  | DM_DEVICE_WAITEVENT
+  | DM_DEVICE_LIST
+  | DM_DEVICE_CLEAR
+  | DM_DEVICE_MKNODES
+  | DM_DEVICE_LIST_VERSIONS
+  | DM_DEVICE_TARGET_MSG
+  | DM_DEVICE_SET_GEOMETRY
+  (** Every task has an associated kind *)
+
+  val dm_task_create: kind -> dm_task option
   (** [dm_task_create kind] opens the device mapper control interface
       and initialises a task [kind]. This will return None if the
       caller doesn't have permission to talk to the control interface

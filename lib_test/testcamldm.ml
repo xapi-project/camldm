@@ -67,7 +67,7 @@ open OUnit
 
 let create_destroy () =
   let open Devmapper.Lowlevel in
-  match dm_task_create 0 with
+  match dm_task_create DM_DEVICE_CREATE with
   | None ->
     failwith "dm_task_create returned NULL: check permissions?"
   | Some dmt ->
