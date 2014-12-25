@@ -86,3 +86,7 @@ val create: string -> target list -> unit
 
 val reload: string -> target list -> unit
 (** [reload name targets]: modifies the existing device [name] to have targets [targets] *)
+
+val mknods: string option -> unit
+(** [mknods (Some device)] creates the device nodes for [device]; [mknods None] creates
+    all device nodes system-wide. *)
