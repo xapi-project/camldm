@@ -56,4 +56,6 @@ module Lowlevel = struct
 
   let dm_task_set_name = foreign "dm_task_set_name" (dm_task @-> string @-> returning bool)
   let dm_task_set_uuid = foreign "dm_task_set_uuid" (dm_task @-> string @-> returning bool)
+
+  let dm_task_run = foreign "dm_task_run" (dm_task @-> returning bool)
 end

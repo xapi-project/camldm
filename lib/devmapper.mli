@@ -61,4 +61,6 @@ module Lowlevel: sig
   (** [dm_task_set_uuid task uuid] associate [uuid] with [task], returning
       true if successful. *)
 
+  val dm_task_run: dm_task -> bool
+  (* [dm_tsak_run task] runs the ioctl, returning true if successful. *)
 end
