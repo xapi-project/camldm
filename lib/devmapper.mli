@@ -70,3 +70,6 @@ val remove: string -> unit
 
 val suspend: string -> unit
 (** [suspend name]: suspends the device mapper device with name [name] *)
+
+val resume: string -> unit
+(** [resume name]: resumes the suspended device mapper device with name [name] *)

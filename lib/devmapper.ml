@@ -90,3 +90,4 @@ let _simple kind name =
 
 let remove = _simple Lowlevel.DM_DEVICE_REMOVE    
 let suspend = _simple Lowlevel.DM_DEVICE_SUSPEND
+let resume = _simple Lowlevel.DM_DEVICE_RESUME
