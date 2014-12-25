@@ -67,3 +67,6 @@ end
 
 val remove: string -> unit
 (** [remove name]: remove the device mapper device with name [name] *)
+
+val suspend: string -> unit
+(** [suspend name]: suspends the device mapper device with name [name] *)
