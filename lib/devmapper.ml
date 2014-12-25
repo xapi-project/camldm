@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *)
-
+open Sexplib.Std
 
 module Lowlevel = struct
   (** The unsafe direct interface to the C library *)
@@ -58,6 +58,8 @@ module Lowlevel = struct
   let dm_task_set_uuid = foreign "dm_task_set_uuid" (dm_task @-> string @-> returning bool)
 
   let dm_task_run = foreign "dm_task_run" (dm_task @-> returning bool)
+  
+  let dm_task_add_target = foreign "dm_task_add_target" (dm_task @-> uint64_t @-> uint64_t @-> string @-> string @-> returning bool)
 end
 
 let finally f g =
@@ -91,3 +93,26 @@ let _simple kind name =
 let remove = _simple Lowlevel.DM_DEVICE_REMOVE    
 let suspend = _simple Lowlevel.DM_DEVICE_SUSPEND
 let resume = _simple Lowlevel.DM_DEVICE_RESUME
+
+type target = {
+  start: int64;
+  size: int64;
+  ttype: string;
+  params: string;
+} with sexp
+
+let create name targets =
+  let open Lowlevel in
+  with_task DM_DEVICE_CREATE
+    (fun dm_task ->
+      if not (dm_task_set_name dm_task name)
+      then failwith (Printf.sprintf "dm_task_set_name %s failed" name);
+      List.iter
+        (fun t ->
+          let open Unsigned.UInt64 in
+          if not (dm_task_add_target dm_task (of_int64 t.start) (of_int64 t.size) t.ttype t.params)
+          then failwith (Printf.sprintf "dm_task_add_target %s failed" (Sexplib.Sexp.to_string (sexp_of_target t)));
+        ) targets;
+      if not (dm_task_run dm_task)
+      then failwith "dm_task_run failed"
+    )

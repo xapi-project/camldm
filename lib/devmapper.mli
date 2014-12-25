@@ -73,3 +73,13 @@ val suspend: string -> unit
 
 val resume: string -> unit
 (** [resume name]: resumes the suspended device mapper device with name [name] *)
+
+type target = {
+  start: Int64.t;
+  size: Int64.t;
+  ttype: string;
+  params: string;
+}
+
+val create: string -> target list -> unit
+(** [create name targets]: creates a device with name [name] and targets [targets] *)
