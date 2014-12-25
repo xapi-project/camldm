@@ -64,3 +64,6 @@ module Lowlevel: sig
   val dm_task_run: dm_task -> bool
   (* [dm_tsak_run task] runs the ioctl, returning true if successful. *)
 end
+
+val remove: string -> unit
+(** [remove name]: remove the device mapper device with name [name] *)

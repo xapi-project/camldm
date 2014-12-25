@@ -59,3 +59,33 @@ module Lowlevel = struct
 
   let dm_task_run = foreign "dm_task_run" (dm_task @-> returning bool)
 end
+
+let finally f g =
+  try
+    let result = f () in
+    g ();
+    result
+  with e ->
+    g ();
+    raise e
+
+let with_task kind f =
+  let open Lowlevel in
+  match dm_task_create kind with
+  | None -> failwith "Failed to create device-mapper task; check permissions and retry"
+  | Some dm_task ->
+    finally
+      (fun () -> f dm_task)
+      (fun () -> dm_task_destroy dm_task)
+
+let _simple kind name =
+  let open Lowlevel in
+  with_task kind
+    (fun dm_task ->
+      if not (dm_task_set_name dm_task name)
+      then failwith (Printf.sprintf "dm_task_set_name %s failed" name);
+      if not (dm_task_run dm_task)
+      then failwith "dm_task_run failed"
+    )
+
+let remove = _simple Lowlevel.DM_DEVICE_REMOVE    
