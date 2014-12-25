@@ -101,9 +101,9 @@ type target = {
   params: string;
 } with sexp
 
-let create name targets =
+let create_reload_common kind name targets =
   let open Lowlevel in
-  with_task DM_DEVICE_CREATE
+  with_task kind
     (fun dm_task ->
       if not (dm_task_set_name dm_task name)
       then failwith (Printf.sprintf "dm_task_set_name %s failed" name);
@@ -116,3 +116,6 @@ let create name targets =
       if not (dm_task_run dm_task)
       then failwith "dm_task_run failed"
     )
+
+let create = create_reload_common Lowlevel.DM_DEVICE_CREATE
+let reload = create_reload_common Lowlevel.DM_DEVICE_RELOAD

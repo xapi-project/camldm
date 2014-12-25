@@ -83,3 +83,6 @@ type target = {
 
 val create: string -> target list -> unit
 (** [create name targets]: creates a device with name [name] and targets [targets] *)
+
+val reload: string -> target list -> unit
+(** [reload name targets]: modifies the existing device [name] to have targets [targets] *)
