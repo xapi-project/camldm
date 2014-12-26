@@ -108,3 +108,6 @@ type info = {
 val info: string -> info option
 (** [info name] returns [Some info] describing [name], or [None} if [name] doesn't
     exist. *)
+
+val ls: unit -> string list
+(** [ls ()] returns a list of all current names *)

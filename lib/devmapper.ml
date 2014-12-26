@@ -85,6 +85,17 @@ module Lowlevel = struct
   let dm_task_get_info = foreign "dm_task_get_info" (dm_task @-> dm_info @-> returning bool)
 
   let dm_get_next_target = foreign "dm_get_next_target" (dm_task @-> (ptr void) @-> (ptr uint64_t) @-> (ptr uint64_t) @-> (ptr string) @-> (ptr string) @-> returning (ptr void))
+
+  let struct_dm_names = structure "dm_names"
+  let struct_dm_names_dev = field struct_dm_names "dev" uint64_t
+  let struct_dm_names_next = field struct_dm_names "next" uint32_t
+  let struct_dm_names_name = field struct_dm_names "name" char
+  let () = seal struct_dm_names
+  type dm_names = [ `Dm_names ] structure ptr
+  let dm_names : dm_names typ = ptr struct_dm_names
+  let dm_names_opt : dm_names option typ = ptr_opt struct_dm_names
+
+  let dm_task_get_names = foreign "dm_task_get_names" (dm_task @-> returning dm_names_opt)
 end
 
 let finally f g =
@@ -204,4 +215,45 @@ let info name =
       if getf dm_info struct_dm_info_exists = 0
       then None
       else Some (read_info (read_targets dm_task null))
+    )
+
+let ls () =
+  let open Lowlevel in
+  let open Ctypes in
+  let open PosixTypes in
+
+  let string_of_char_ptr p =
+    let b = Buffer.create 16 in
+    let rec loop p =
+      let c = !@ p in
+      if c = '\000'
+      then Buffer.contents b
+      else begin
+        Buffer.add_char b c;
+        loop (p +@ 1)
+      end in
+    loop p in
+
+  with_task DM_DEVICE_LIST
+    (fun dm_task ->
+      if not (dm_task_run dm_task)
+      then failwith "dm_task_run failed";
+      match dm_task_get_names dm_task with
+      | None -> failwith "dm_task_get_names failed"
+      | Some dm_names ->
+        let s = !@ dm_names in
+        if Unsigned.UInt64.to_int64 (getf s struct_dm_names_dev) = 0L
+        then []
+        else begin
+          let ptr = to_voidp dm_names in
+          let rec loop ptr next =
+            let ptr = ptr +@ next in
+            let s = !@ (from_voidp struct_dm_names ptr) in
+            let name = string_of_char_ptr (s @. struct_dm_names_name) in
+            let next = Unsigned.UInt32.to_int (getf s struct_dm_names_next) in
+            if next = 0
+            then [ name ]
+            else name :: (loop ptr next) in
+          loop ptr 0
+        end
     )
