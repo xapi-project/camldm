@@ -11,7 +11,9 @@ case "$OCAML_VERSION,$OPAM_VERSION" in
 esac
 
 echo "yes" | sudo add-apt-repository ppa:$ppa
+echo Updating package index
 sudo apt-get update -qq
+echo Installing OCaml
 sudo apt-get install -qq ocaml ocaml-native-compilers camlp4-extra opam
 
 export OPAMYES=1
@@ -22,6 +24,7 @@ echo OPAM versions
 opam --version
 opam --git-version
 
+echo Installing opam
 opam init
 eval `opam config env`
 opam pin add camldm . -n
