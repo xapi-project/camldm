@@ -247,7 +247,7 @@ let ls () =
         else begin
           let ptr = to_voidp dm_names in
           let rec loop ptr next =
-            let ptr = ptr +@ next in
+            let ptr = ptr_of_raw_address (Int64.(add (raw_address_of_ptr ptr) (of_int next))) in
             let s = !@ (from_voidp struct_dm_names ptr) in
             let name = string_of_char_ptr (s @. struct_dm_names_name) in
             let next = Unsigned.UInt32.to_int (getf s struct_dm_names_next) in

@@ -13,7 +13,7 @@ Library camldm
   Modules: Camldm, Devmapper
   CSources: camldm_stubs.c, devmapper_stubs.c
   CCLib: -ldevmapper
-  BuildDepends: rpclib, rpclib.syntax, ctypes, ctypes.foreign, sexplib, sexplib.syntax
+  BuildDepends: rpclib, rpclib.syntax, ctypes (>= 0.3.0), ctypes.foreign, sexplib, sexplib.syntax
 
 Executable lib_test
   CompiledObject:     best
