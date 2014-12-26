@@ -61,7 +61,7 @@ module Lowlevel = struct
   
   let dm_task_add_target = foreign "dm_task_add_target" (dm_task @-> uint64_t @-> uint64_t @-> string @-> string @-> returning bool)
 
-  let dm_mknods = foreign "dm_mknods" (string_opt @-> returning bool)
+  let dm_mknodes = foreign "dm_mknodes" (string_opt @-> returning bool)
 
   type dm_info = [ `Dm_info ] structure ptr
 
@@ -146,8 +146,8 @@ let create = create_reload_common Lowlevel.DM_DEVICE_CREATE
 let reload = create_reload_common Lowlevel.DM_DEVICE_RELOAD
 
 let mknods x =
-  if not (Lowlevel.dm_mknods x)
-  then failwith "dm_mknods failed"
+  if not (Lowlevel.dm_mknodes x)
+  then failwith "dm_mknodes failed"
 
 type info = {
   suspended: bool;
