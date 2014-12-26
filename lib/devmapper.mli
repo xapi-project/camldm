@@ -90,3 +90,21 @@ val reload: string -> target list -> unit
 val mknods: string option -> unit
 (** [mknods (Some device)] creates the device nodes for [device]; [mknods None] creates
     all device nodes system-wide. *)
+
+type info = {
+  suspended: bool;
+  live_table: int;
+  inactive_table: int;
+  open_count: int32;
+  event_nr: int32;
+  major: int32;
+  minor: int32;
+  read_only: bool;
+  target_count: int32;
+  deferred_remove: int;
+  targets: target list;
+} with sexp
+
+val info: string -> info option
+(** [info name] returns [Some info] describing [name], or [None} if [name] doesn't
+    exist. *)

@@ -62,6 +62,29 @@ module Lowlevel = struct
   let dm_task_add_target = foreign "dm_task_add_target" (dm_task @-> uint64_t @-> uint64_t @-> string @-> string @-> returning bool)
 
   let dm_mknods = foreign "dm_mknods" (string_opt @-> returning bool)
+
+  type dm_info = [ `Dm_info ] structure ptr
+
+  let struct_dm_info = structure "dm_info"
+  let struct_dm_info_exists = field struct_dm_info "exists" int
+  let struct_dm_info_suspended = field struct_dm_info "suspended" int
+  let struct_dm_info_live_table = field struct_dm_info "live_table" int
+  let struct_dm_info_inactive_table = field struct_dm_info "inactive_table" int
+  let struct_dm_info_open_count = field struct_dm_info "open_count" int32_t
+  let struct_dm_info_event_nr = field struct_dm_info "event_nr" uint32_t
+  let struct_dm_info_major = field struct_dm_info "major" uint32_t
+  let struct_dm_info_minor = field struct_dm_info "minor" uint32_t
+  let struct_dm_info_read_only = field struct_dm_info "read_only" int (* 0:read-write 1:read-only *)
+  let struct_dm_info_target_count = field struct_dm_info "target_count" int32_t
+  let struct_dm_info_deferred_remove = field struct_dm_info "deferred_remove" int
+  let () = seal struct_dm_info
+
+  let dm_info : dm_info typ = ptr struct_dm_info
+  let dm_info_opt : dm_info option typ = ptr_opt struct_dm_info
+
+  let dm_task_get_info = foreign "dm_task_get_info" (dm_task @-> dm_info @-> returning bool)
+
+  let dm_get_next_target = foreign "dm_get_next_target" (dm_task @-> (ptr void) @-> (ptr uint64_t) @-> (ptr uint64_t) @-> (ptr string) @-> (ptr string) @-> returning (ptr void))
 end
 
 let finally f g =
@@ -125,3 +148,60 @@ let reload = create_reload_common Lowlevel.DM_DEVICE_RELOAD
 let mknods x =
   if not (Lowlevel.dm_mknods x)
   then failwith "dm_mknods failed"
+
+type info = {
+  suspended: bool;
+  live_table: int;
+  inactive_table: int;
+  open_count: int32;
+  event_nr: int32;
+  major: int32;
+  minor: int32;
+  read_only: bool;
+  target_count: int32;
+  deferred_remove: int;
+  targets: target list;
+} with sexp
+
+let info name =
+  let open Ctypes in
+  let open PosixTypes in
+  let open Lowlevel in
+  let dm_info = make struct_dm_info in
+  let rec read_targets dm_task next =
+    let start = allocate uint64_t (Unsigned.UInt64.of_int64 0L) in
+    let size = allocate uint64_t (Unsigned.UInt64.of_int64 0L) in
+    let ttype = allocate string "" in
+    let params = allocate string "" in
+    let next = dm_get_next_target dm_task next start size ttype params in
+    let start = Unsigned.UInt64.to_int64 (!@ start) in
+    let size = Unsigned.UInt64.to_int64 (!@ size) in
+    let target = { start; size; ttype = !@ ttype; params = !@ params } in
+    if next = null
+    then [ target ]
+    else target :: (read_targets dm_task next) in
+  let read_info targets =
+    let suspended = getf dm_info struct_dm_info_suspended <> 0 in
+    let live_table = getf dm_info struct_dm_info_live_table in
+    let inactive_table = getf dm_info struct_dm_info_inactive_table in
+    let open_count = getf dm_info struct_dm_info_open_count in
+    let event_nr = getf dm_info struct_dm_info_event_nr |> Unsigned.UInt32.to_int32 in
+    let major = getf dm_info struct_dm_info_major |> Unsigned.UInt32.to_int32 in
+    let minor = getf dm_info struct_dm_info_minor |> Unsigned.UInt32.to_int32 in
+    let read_only = getf dm_info struct_dm_info_read_only <> 0 in
+    let target_count = getf dm_info struct_dm_info_target_count in
+    let deferred_remove = getf dm_info struct_dm_info_deferred_remove in
+    { suspended; live_table; inactive_table; open_count; event_nr;
+      major; minor; read_only; target_count; deferred_remove; targets } in
+  with_task DM_DEVICE_TABLE
+    (fun dm_task ->
+      if not (dm_task_set_name dm_task name)
+      then failwith (Printf.sprintf "dm_task_set_name %s failed" name);
+      if not (dm_task_run dm_task)
+      then failwith "dm_task_run failed";
+      if not (dm_task_get_info dm_task (addr dm_info))
+      then failwith "dm_task_get_info failed";
+      if getf dm_info struct_dm_info_exists = 0
+      then None
+      else Some (read_info (read_targets dm_task null))
+    )
