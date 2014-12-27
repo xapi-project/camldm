@@ -74,17 +74,34 @@ val suspend: string -> unit
 val resume: string -> unit
 (** [resume name]: resumes the suspended device mapper device with name [name] *)
 
-type target = {
-  start: Int64.t;
-  size: Int64.t;
-  ttype: string;
-  params: string;
-}
+module Linear : sig
+  type device =
+  | Number of int32 * int32 (** major * minor *)
+  | Path of string
+  with sexp
 
-val create: string -> target list -> unit
+  type t = {
+    device: device;
+    offset: int64; (** sectors *)
+  } with sexp
+end
+
+module Target : sig
+  type kind =
+  | Linear of Linear.t
+  | Unknown of string * string
+
+  type t = {
+    start: Int64.t; (** sectors *)
+    size: Int64.t;  (** sectors *)
+    kind: kind;
+  } with sexp
+end
+
+val create: string -> Target.t list -> unit
 (** [create name targets]: creates a device with name [name] and targets [targets] *)
 
-val reload: string -> target list -> unit
+val reload: string -> Target.t list -> unit
 (** [reload name targets]: modifies the existing device [name] to have targets [targets] *)
 
 val mknods: string option -> unit
@@ -102,7 +119,7 @@ type info = {
   read_only: bool;
   target_count: int32;
   deferred_remove: int;
-  targets: target list;
+  targets: Target.t list;
 } with sexp
 
 val info: string -> info option

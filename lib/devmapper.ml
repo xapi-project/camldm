@@ -130,12 +130,74 @@ let remove = _simple Lowlevel.DM_DEVICE_REMOVE
 let suspend = _simple Lowlevel.DM_DEVICE_SUSPEND
 let resume = _simple Lowlevel.DM_DEVICE_RESUME
 
-type target = {
-  start: int64;
-  size: int64;
-  ttype: string;
-  params: string;
-} with sexp
+module Linear = struct
+  type device =
+  | Number of int32 * int32 (** major * minor *)
+  | Path of string
+  with sexp
+
+  type t = {
+    device: device;
+    offset: int64; (* sectors *)
+  } with sexp
+
+  let marshal t = match t.device with
+  | Number (major, minor) -> Printf.sprintf "%ld:%ld %Ld" major minor t.offset
+  | Path x -> Printf.sprintf "%s %Ld" x t.offset
+
+  let unmarshal x =
+    let error () = `Error (Printf.sprintf "Cannot parse linear target: %s" x) in
+    match Stringext.split ~max:2 x ~on:' ' with
+    | [ majorminor; offset ] ->
+      begin match Stringext.split ~max:2 majorminor ~on:':' with
+      | [ major; minor ] ->
+        begin
+          try
+            let major = Int32.of_string major in
+            let minor = Int32.of_string minor in
+            let device = Number (major, minor) in
+            let offset = Int64.of_string offset in
+            `Ok { device; offset }
+          with _ ->
+            error ()
+        end
+      | _ ->
+        begin
+          try
+            let device = Path majorminor in
+            let offset = Int64.of_string offset in
+            `Ok { device; offset }
+          with _ ->
+            error ()
+        end
+      end
+    | _ -> error ()
+end
+
+module Target = struct
+  type kind =
+  | Linear of Linear.t
+  | Unknown of string * string
+  with sexp
+
+  type t = {
+    start: int64; (* sectors *)
+    size: int64;  (* sectors *)
+    kind: kind;
+  } with sexp
+
+  let marshal = function
+  | Unknown(ttype, params) -> ttype, params
+  | Linear l -> "linear", Linear.marshal l
+
+  let unmarshal (ttype, params) = match ttype with
+  | "linear" ->
+    begin match Linear.unmarshal params with
+    | `Ok l -> Linear l
+    | `Error msg -> failwith msg
+    end
+  | _ -> Unknown(ttype, params)
+end
 
 let create_reload_common kind name targets =
   let open Lowlevel in
@@ -146,8 +208,10 @@ let create_reload_common kind name targets =
       List.iter
         (fun t ->
           let open Unsigned.UInt64 in
-          if not (dm_task_add_target dm_task (of_int64 t.start) (of_int64 t.size) t.ttype t.params)
-          then failwith (Printf.sprintf "dm_task_add_target %s failed" (Sexplib.Sexp.to_string (sexp_of_target t)));
+          let open Target in
+          let ttype, params = marshal t.kind in
+          if not (dm_task_add_target dm_task (of_int64 t.start) (of_int64 t.size) ttype params)
+          then failwith (Printf.sprintf "dm_task_add_target %s failed" (Sexplib.Sexp.to_string (sexp_of_t t)));
         ) targets;
       if not (dm_task_run dm_task)
       then failwith "dm_task_run failed"
@@ -171,7 +235,7 @@ type info = {
   read_only: bool;
   target_count: int32;
   deferred_remove: int;
-  targets: target list;
+  targets: Target.t list;
 } with sexp
 
 let info name =
@@ -187,7 +251,9 @@ let info name =
     let next = dm_get_next_target dm_task next start size ttype params in
     let start = Unsigned.UInt64.to_int64 (!@ start) in
     let size = Unsigned.UInt64.to_int64 (!@ size) in
-    let target = { start; size; ttype = !@ ttype; params = !@ params } in
+    let open Target in
+    let kind = unmarshal (!@ ttype, !@ params) in
+    let target = { start; size; kind } in
     if next = null
     then [ target ]
     else target :: (read_targets dm_task next) in
