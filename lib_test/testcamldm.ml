@@ -96,11 +96,16 @@ let set_name () =
 
 let create_destroy () = with_task Devmapper.Lowlevel.DM_DEVICE_CREATE (fun _ -> ())
 
+let ls () =
+  let (_: string list) = Devmapper.ls () in
+  ()
+
 let _ =
   let suite = "devicemapper" >:::
     [
       "create_destroy" >:: create_destroy;
       "set name and uuid" >:: set_name;
+      "ls" >:: ls;
     ] in
   run_test_tt suite
     
