@@ -34,6 +34,27 @@ let make_temp_volume () =
 let remove_temp_volume volume =
   ignore_string (run "losetup" [ "-d"; volume ])
 
+let with_temp_volume f =
+  let dev = make_temp_volume () in
+  finally (fun () -> f dev) (fun () -> remove_temp_volume dev)
+
+open Devmapper
+
+let create_destroy () =
+  with_temp_volume
+    (fun device ->
+      let device = Linear.Path device in
+      let name = "testdevmapper" in
+      let targets = [
+        Target.({ start = 0L; size = 1L; kind = Linear Linear.({device; offset = 1L}) });
+        Target.({ start = 1L; size = 1L; kind = Linear Linear.({device; offset = 0L}) })
+      ] in
+      create name targets;
+      finally
+        (fun () ->
+          ()
+        ) (fun () -> remove name)
+    )
 (*
 (* This test nolonger compiles *)
 let _ =
@@ -127,6 +148,7 @@ let _ =
       "create_destroy" >:: create_destroy;
       "set name and uuid" >:: set_name;
       "ls" >:: ls;
+      "create_destroy" >:: create_destroy;
     ] in
   run_test_tt suite
     
