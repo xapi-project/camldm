@@ -41,6 +41,7 @@ let with_temp_volume f =
 open Devmapper
 
 let name = "testdevmapper"
+let dev_mapper_path = "/dev/mapper/" ^ name
 
 let create_destroy () =
   with_temp_volume
@@ -88,20 +89,19 @@ let write_sector path sector buf =
 
 let cstruct_equal a b =
   let check_contents a b =
-    try
-      for i = 0 to Cstruct.len a - 1 do
-        let a' = Cstruct.get_uint8 a i in
-        let b' = Cstruct.get_uint8 b i in
-        if a' <> b' then failwith (Printf.sprintf "buffers differ at %d: %d <> %d" i a' b')
-      done;
-      true
-    with _ -> false in
-  (Cstruct.len a = (Cstruct.len b)) && (check_contents a b)
+    for i = 0 to Cstruct.len a - 1 do
+      let a' = Cstruct.get_uint8 a i in
+      let b' = Cstruct.get_uint8 b i in
+      if a' <> b' then failwith (Printf.sprintf "buffers differ at %d: %d <> %d" i a' b')
+    done in
+  if Cstruct.len a <> (Cstruct.len b)
+  then failwith "buffers have different lengths";
+  check_contents a b
 
 let write_read () =
   with_temp_volume
-    (fun device ->
-      let device = Linear.Path device in
+    (fun path ->
+      let device = Linear.Path path in
       let targets = [
         Target.({ start = 0L; size = 1L; kind = Linear Linear.({device; offset = 1L}) });
         Target.({ start = 1L; size = 1L; kind = Linear Linear.({device; offset = 0L}) })
@@ -112,8 +112,17 @@ let write_read () =
           let all = ls () in
           if not(List.mem name all)
           then failwith (Printf.sprintf "%s not in [ %s ]" name (String.concat "; " all));
+          mknods (Some name);
+          Printf.fprintf stderr "ls /dev/mapper = %s\n%!" (run "/bin/ls" [ "/dev/mapper" ]);
           (* write to the real device, read via device mapper *)
-
+          let ones = constant_sector 1 in
+          let twos = constant_sector 2 in
+          write_sector path 0L ones;
+          write_sector path 1L twos;
+          let at_zero = read_sector dev_mapper_path 0L in
+          let at_one = read_sector dev_mapper_path 1L in
+          cstruct_equal ones at_one;
+          cstruct_equal twos at_zero
         ) (fun () -> remove name)
     )
 
