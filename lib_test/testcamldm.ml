@@ -134,56 +134,33 @@ let write_read () =
         ) (fun () -> remove name)
     )
 
-(*
-(* This test nolonger compiles *)
-let _ =
-  let name = Sys.argv.(1) in
-  let start = Int64.of_string Sys.argv.(2) in
-  let len = Int64.of_string Sys.argv.(3) in
-  let dev = Sys.argv.(4) in
-  let offset = Int64.of_string Sys.argv.(5) in
-  let dev2 = Sys.argv.(6) in
-  let offset2 = Int64.of_string Sys.argv.(7) in
+let write_read_striped () =
+  with_temp_volume
+    (fun path1 ->
+      let ones = constant_sector 1 in
+      write_sector path1 0L ones;
+      with_temp_volume
+        (fun path2 ->
+          let twos = constant_sector 2 in
+          write_sector path2 0L twos;
 
-  let buf = String.create 512 in
+          let device1 = Location.Path path1 in
+          let device2 = Location.Path path2 in
+          let stripes = Location.([| { device = device1; offset = 0L }; { device = device2; offset = 0L } |]) in
+          let targets = [
+            Target.({ start=0L; size = 16L; kind = Striped Striped.({size = 8L; stripes; }) })
+          ] in
+          create name targets;
+          finally
+             (fun () ->
+               let at_zero = read_sector dev_mapper_path 0L in
+               let at_eight = read_sector dev_mapper_path 8L in
+               cstruct_equal ones at_zero;
+               cstruct_equal twos at_eight;
+             ) (fun () -> remove name)
+        )
+    )
 
-  Camldm.create name [| { start=start; 
-			  len=len; 
-			  map = Striped {chunk_size=8L; 
-					 dests=[| {device=dev;offset=offset}; 
-						  {device=dev2;offset=offset2} |] } } |];
-
-  let s = Camldm.table name in
-  let (major,minor) = s.major,s.minor in
-  let nod = "/tmp/foobar" in
-  Camldm.mknod nod 0o644 (Int32.to_int major) (Int32.to_int minor);
-  let ifd = Unix.openfile nod [Unix.O_RDONLY] 0o000 in
-  Printf.printf "Status:\nexists: %b\nsuspended: %b\nlive_table: %b\ninactive_table: %b\n" s.exists s.suspended s.live_table s.inactive_table;
-  Printf.printf "open_count: %ld\nevent_nr: %ld\nmajor: %ld\nminor: %ld\n"
-    s.open_count s.event_nr s.major s.minor;
-  Printf.printf "read_only: %b\n" s.read_only;
-  Printf.printf "\nTable:\n";
-  List.iter (fun (s,l,t,p) -> Printf.printf " %Ld %Ld %s %s\n" s l t p) s.targets;
-  let input = Unix.read ifd buf 0 10 in
-  Printf.printf "input=%d\n" input;
-  for i=0 to 2 do 
-    Printf.printf "%d " (int_of_char buf.[i])
-  done;
-  let name=Printf.sprintf "/sys/block/dm-%ld/dev" minor in
-  Printf.printf "Got minor=%ld - looking for: %s\n" minor name;
-  let fd = Unix.openfile name [Unix.O_RDONLY] 0o000 in
-  let input = Unix.read fd buf 0 10 in
-  Printf.printf "input=%d\n" input;
-  for i=0 to 2 do 
-    Printf.printf "%d " (int_of_char buf.[i])
-  done;
-  Printf.printf "\n";
-  Unix.close fd
-
-
-  (*List.iter (fun (a,b,c,d,e,f) -> Printf.printf "%d %d %Ld %Ld %s %s" a b c d e f) l; *)
-(*  Camldm.remove name*)
-*)
 open OUnit
 
 let finally f g =
@@ -229,6 +206,7 @@ let _ =
       "ls" >:: ls;
       "create_destroy" >:: create_destroy;
       "write_read" >:: write_read;
+      "write_read_striped" >:: write_read_striped;
     ] in
   run_test_tt suite
     
