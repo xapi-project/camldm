@@ -1,5 +1,5 @@
 (*
- * Copyright (C) 2006-2009 Citrix Systems Inc.
+ * Copyright (C) 2006-2014 Citrix Systems Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -40,11 +40,24 @@ let with_temp_volume f =
 
 open Devmapper
 
+let name = "testdevmapper"
+
 let create_destroy () =
   with_temp_volume
     (fun device ->
+      create name [];
+      finally
+        (fun () ->
+          let all = ls () in
+          if not(List.mem name all)
+          then failwith (Printf.sprintf "%s not in [ %s ]" name (String.concat "; " all))
+        ) (fun () -> remove name)
+    )
+
+let write_read () =
+  with_temp_volume
+    (fun device ->
       let device = Linear.Path device in
-      let name = "testdevmapper" in
       let targets = [
         Target.({ start = 0L; size = 1L; kind = Linear Linear.({device; offset = 1L}) });
         Target.({ start = 1L; size = 1L; kind = Linear Linear.({device; offset = 0L}) })
@@ -52,9 +65,14 @@ let create_destroy () =
       create name targets;
       finally
         (fun () ->
-          ()
+          let all = ls () in
+          if not(List.mem name all)
+          then failwith (Printf.sprintf "%s not in [ %s ]" name (String.concat "; " all));
+          (* write to the real device, read via device mapper *)
+
         ) (fun () -> remove name)
     )
+
 (*
 (* This test nolonger compiles *)
 let _ =
@@ -149,6 +167,7 @@ let _ =
       "set name and uuid" >:: set_name;
       "ls" >:: ls;
       "create_destroy" >:: create_destroy;
+      "write_read" >:: write_read;
     ] in
   run_test_tt suite
     
