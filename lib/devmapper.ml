@@ -98,6 +98,10 @@ module Lowlevel = struct
   let dm_names_opt : dm_names option typ = ptr_opt struct_dm_names
 
   let dm_task_get_names = foreign ~from "dm_task_get_names" (dm_task @-> returning dm_names_opt)
+
+  let dm_task_set_cookie = foreign ~from "dm_task_set_cookie" (dm_task @-> (ptr uint32_t) @-> uint16_t @-> returning bool)
+
+  let dm_udev_wait = foreign ~from "dm_udev_wait" (uint32_t @-> returning bool)
 end
 
 let finally f g =
@@ -201,7 +205,9 @@ module Target = struct
   | _ -> Unknown(ttype, params)
 end
 
-let create_reload_common kind name targets =
+let create_reload_common kind wait name targets =
+  let open Ctypes in
+  let open PosixTypes in
   let open Lowlevel in
   with_task kind
     (fun dm_task ->
@@ -215,12 +221,21 @@ let create_reload_common kind name targets =
           if not (dm_task_add_target dm_task (of_int64 t.start) (of_int64 t.size) ttype params)
           then failwith (Printf.sprintf "dm_task_add_target %s failed" (Sexplib.Sexp.to_string (sexp_of_t t)));
         ) targets;
+
+      let cookie = allocate uint32_t (Unsigned.UInt32.of_int32 0l) in
+      let udev_flags = Unsigned.UInt16.of_int 0 in
+      if not (dm_task_set_cookie dm_task cookie udev_flags)
+      then failwith "dm_task_set_cookie";
+
       if not (dm_task_run dm_task)
-      then failwith "dm_task_run failed"
+      then failwith "dm_task_run failed";
+
+      if wait && (not (dm_udev_wait (!@ cookie)))
+      then failwith "dm_udev_wait failed";
     )
 
-let create = create_reload_common Lowlevel.DM_DEVICE_CREATE
-let reload = create_reload_common Lowlevel.DM_DEVICE_RELOAD
+let create = create_reload_common Lowlevel.DM_DEVICE_CREATE true
+let reload = create_reload_common Lowlevel.DM_DEVICE_RELOAD false
 
 let mknods x =
   if not (Lowlevel.dm_mknodes x)

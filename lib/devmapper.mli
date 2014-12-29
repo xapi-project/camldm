@@ -99,7 +99,9 @@ module Target : sig
 end
 
 val create: string -> Target.t list -> unit
-(** [create name targets]: creates a device with name [name] and targets [targets] *)
+(** [create name targets]: creates a device with name [name] and
+    targets [targets]. This function blocks until the udev event has
+    fired and the /dev/mapper device has been created. *)
 
 val reload: string -> Target.t list -> unit
 (** [reload name targets]: modifies the existing device [name] to have targets [targets] *)
