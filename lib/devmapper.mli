@@ -12,14 +12,17 @@
  * GNU Lesser General Public License for more details.
  *)
 
-val remove: string -> unit
-(** [remove name]: remove the device mapper device with name [name] *)
+type device = string
+(** The name of a device mapper device (e.g. vg_st30_lv_root) *)
 
-val suspend: string -> unit
-(** [suspend name]: suspends the device mapper device with name [name] *)
+val remove: device -> unit
+(** [remove device]: remove the device mapper device with name [device] *)
 
-val resume: string -> unit
-(** [resume name]: resumes the suspended device mapper device with name [name] *)
+val suspend: device -> unit
+(** [suspend device]: suspends the device mapper device with name [device] *)
+
+val resume: device -> unit
+(** [resume device]: resumes the suspended device mapper device with name [device] *)
 
 module Location : sig
   type device =
@@ -53,17 +56,18 @@ module Target : sig
   } with sexp
 end
 
-val create: string -> Target.t list -> unit
-(** [create name targets]: creates a device with name [name] and
+val create: device -> Target.t list -> unit
+(** [create device targets]: creates a device with name [device] and
     targets [targets]. This function blocks until the udev event has
     fired and the /dev/mapper device has been created. *)
 
-val reload: string -> Target.t list -> unit
-(** [reload name targets]: modifies the existing device [name] to have targets [targets] *)
+val reload: device -> Target.t list -> unit
+(** [reload device targets]: modifies the existing device [device] to
+    have targets [targets] *)
 
-val mknod: string -> string -> int -> unit
-(** [mknod name path mode]: creates a Unix device node for device
-    [name] at [path] and with [mode] *)
+val mknod: device -> string -> int -> unit
+(** [mknod device path mode]: creates a Unix device node for device
+    [device] at [path] and with [mode] *)
 
 type info = {
   suspended: bool;
@@ -79,9 +83,9 @@ type info = {
   targets: Target.t list;
 } with sexp
 
-val info: string -> info option
-(** [info name] returns [Some info] describing [name], or [None} if [name] doesn't
+val info: device -> info option
+(** [info device] returns [Some info] describing [device], or [None} if [name] doesn't
     exist. *)
 
-val ls: unit -> string list
-(** [ls ()] returns a list of all current names *)
+val ls: unit -> device list
+(** [ls ()] returns a list of all current devices *)

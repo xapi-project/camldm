@@ -383,3 +383,5 @@ let ls () =
           loop ptr 0
         end
     )
+
+type device = string
