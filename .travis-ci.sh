@@ -16,7 +16,6 @@ sudo apt-get update -qq
 echo Installing OCaml
 sudo apt-get install -qq ocaml ocaml-native-compilers camlp4-extra opam
 
-export OPAMYES=1
 export OPAMVERBOSE=1
 echo OCaml version
 ocaml -version
@@ -31,4 +30,5 @@ opam pin add camldm . -n
 sudo apt-get install $(opam install camldm -e ubuntu) -y
 opam install camldm -y
 make
-make test
+# the tests need loop and dm drivers not available on travis
+#make test
