@@ -74,7 +74,7 @@ val suspend: string -> unit
 val resume: string -> unit
 (** [resume name]: resumes the suspended device mapper device with name [name] *)
 
-module Linear : sig
+module Location : sig
   type device =
   | Number of int32 * int32 (** major * minor *)
   | Path of string
@@ -86,9 +86,17 @@ module Linear : sig
   } with sexp
 end
 
+module Striped : sig
+  type t = {
+    size: int64; (** sectors, a power of 2 and at least PAGE_SIZE *)
+    stripes: Location.t array;
+  } with sexp
+end
+
 module Target : sig
   type kind =
-  | Linear of Linear.t
+  | Linear of Location.t
+  | Striped of Striped.t
   | Unknown of string * string
 
   type t = {

@@ -114,10 +114,10 @@ let write_read () =
       write_sector path 0L ones;
       write_sector path 1L twos;
 
-      let device = Linear.Path path in
+      let device = Location.Path path in
       let targets = [
-        Target.({ start = 0L; size = 1L; kind = Linear Linear.({device; offset = 1L}) });
-        Target.({ start = 1L; size = 1L; kind = Linear Linear.({device; offset = 0L}) })
+        Target.({ start = 0L; size = 1L; kind = Linear Location.({device; offset = 1L}) });
+        Target.({ start = 1L; size = 1L; kind = Linear Location.({device; offset = 0L}) })
       ] in
       create name targets;
       finally

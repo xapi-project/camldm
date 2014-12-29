@@ -136,7 +136,7 @@ let remove = _simple Lowlevel.DM_DEVICE_REMOVE
 let suspend = _simple Lowlevel.DM_DEVICE_SUSPEND
 let resume = _simple Lowlevel.DM_DEVICE_RESUME
 
-module Linear = struct
+module Location = struct
   type device =
   | Number of int32 * int32 (** major * minor *)
   | Path of string
@@ -152,7 +152,7 @@ module Linear = struct
   | Path x -> Printf.sprintf "%s %Ld" x t.offset
 
   let unmarshal x =
-    let error () = `Error (Printf.sprintf "Cannot parse linear target: %s" x) in
+    let error () = `Error (Printf.sprintf "Cannot parse location: %s" x) in
     match Stringext.split ~max:2 x ~on:' ' with
     | [ majorminor; offset ] ->
       begin match Stringext.split ~max:2 majorminor ~on:':' with
@@ -180,9 +180,49 @@ module Linear = struct
     | _ -> error ()
 end
 
+module Striped = struct
+  type t = {
+    size: int64; (* sectors, a power of 2 and at least PAGE_SIZE *)
+    stripes: Location.t array;
+  } with sexp
+
+  let marshal t =
+    Printf.sprintf "%d %Ld %s" (Array.length t.stripes) t.size
+      (String.concat " " (Array.(to_list (map Location.marshal t.stripes))))
+
+  let unmarshal x =
+    try
+      match Stringext.split ~max:3 x ~on:' ' with
+      | [ length; size; stripes ] ->
+        let rec loop remaining =
+          match Stringext.split ~max:3 remaining ~on:' ' with
+          | [] -> []
+          | a :: b :: rest ->
+            let this = match Location.unmarshal (a ^ " " ^ b) with
+            | `Ok x -> x
+            | `Error x -> failwith x in
+            let remaining = String.concat "" rest in
+            this :: (loop remaining)
+          | [ x ] ->
+            failwith ("Trailing junk in Striped.unmarshal: " ^ x) in
+        let length = int_of_string length in
+        let size = Int64.of_string size in
+        let stripes = Array.of_list (loop stripes) in
+        if Array.length stripes <> length
+        then failwith (Printf.sprintf "Striped.unmarshal length doesn't match: %d <> %d" length (Array.length stripes));
+        `Ok { size; stripes }
+      | _ ->
+        failwith ("Failed to parse in Striped.unmarshal: " ^ x)
+    with Failure msg ->
+      `Error msg
+    | e ->
+      `Error ("Striped.unmarshal caught: " ^ (Printexc.to_string e))
+end
+
 module Target = struct
   type kind =
-  | Linear of Linear.t
+  | Linear of Location.t
+  | Striped of Striped.t
   | Unknown of string * string
   with sexp
 
@@ -194,12 +234,18 @@ module Target = struct
 
   let marshal = function
   | Unknown(ttype, params) -> ttype, params
-  | Linear l -> "linear", Linear.marshal l
+  | Linear l -> "linear", Location.marshal l
+  | Striped s -> "striped", Striped.marshal s
 
   let unmarshal (ttype, params) = match ttype with
   | "linear" ->
-    begin match Linear.unmarshal params with
+    begin match Location.unmarshal params with
     | `Ok l -> Linear l
+    | `Error msg -> failwith msg
+    end
+  | "striped" ->
+    begin match Striped.unmarshal params with
+    | `Ok s -> Striped s
     | `Error msg -> failwith msg
     end
   | _ -> Unknown(ttype, params)
