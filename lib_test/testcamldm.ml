@@ -105,6 +105,15 @@ let cstruct_equal a b =
 let write_read () =
   with_temp_volume
     (fun path ->
+      (* Write data to the underlying loop device first because
+         it won't be coherent after the devmapper device is created on
+         top. *)
+
+      let ones = constant_sector 1 in
+      let twos = constant_sector 2 in
+      write_sector path 0L ones;
+      write_sector path 1L twos;
+
       let device = Linear.Path path in
       let targets = [
         Target.({ start = 0L; size = 1L; kind = Linear Linear.({device; offset = 1L}) });
@@ -116,13 +125,8 @@ let write_read () =
           let all = ls () in
           if not(List.mem name all)
           then failwith (Printf.sprintf "%s not in [ %s ]" name (String.concat "; " all));
-          mknods (Some name);
-          Printf.fprintf stderr "ls /dev/mapper = %s\n%!" (run "/bin/ls" [ "/dev/mapper" ]);
-          (* write to the real device, read via device mapper *)
-          let ones = constant_sector 1 in
-          let twos = constant_sector 2 in
-          write_sector path 0L ones;
-          write_sector path 1L twos;
+          (* read via device mapper, expect the first two sectors to be
+             permuted (see targets above) *)
           let at_zero = read_sector dev_mapper_path 0L in
           let at_one = read_sector dev_mapper_path 1L in
           cstruct_equal ones at_one;
