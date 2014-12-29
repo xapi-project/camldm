@@ -41,7 +41,10 @@ let with_temp_volume f =
 open Devmapper
 
 let name = "testdevmapper"
-let dev_mapper_path = "/dev/mapper/" ^ name
+let dev_mapper_path = "/tmp/" ^ name
+let create_dev_mapper_path () =
+  (try Unix.unlink dev_mapper_path with _ -> ());
+  Devmapper.mknod name dev_mapper_path 0o0644
 
 let create_destroy () =
   with_temp_volume
@@ -127,6 +130,7 @@ let write_read () =
           then failwith (Printf.sprintf "%s not in [ %s ]" name (String.concat "; " all));
           (* read via device mapper, expect the first two sectors to be
              permuted (see targets above) *)
+          create_dev_mapper_path ();
           let at_zero = read_sector dev_mapper_path 0L in
           let at_one = read_sector dev_mapper_path 1L in
           cstruct_equal ones at_one;
@@ -153,6 +157,7 @@ let write_read_striped () =
           create name targets;
           finally
              (fun () ->
+               create_dev_mapper_path ();
                let at_zero = read_sector dev_mapper_path 0L in
                let at_eight = read_sector dev_mapper_path 8L in
                cstruct_equal ones at_zero;
@@ -199,6 +204,8 @@ let ls () =
   ()
 
 let _ =
+  (* Clean up leftovers from previous runs *)
+  (try Devmapper.remove name with _ -> ());
   let suite = "devicemapper" >:::
     [
       "create_destroy" >:: create_destroy;

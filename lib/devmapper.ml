@@ -102,6 +102,8 @@ module Lowlevel = struct
   let dm_task_set_cookie = foreign ~from "dm_task_set_cookie" (dm_task @-> (ptr uint32_t) @-> uint16_t @-> returning bool)
 
   let dm_udev_wait = foreign ~from "dm_udev_wait" (uint32_t @-> returning bool)
+
+  external mknod : string -> int -> int -> int -> unit = "camldm_mknod"
 end
 
 let finally f g =
@@ -251,7 +253,7 @@ module Target = struct
   | _ -> Unknown(ttype, params)
 end
 
-let create_reload_common kind wait name targets =
+let create_reload_common kind name targets =
   let open Ctypes in
   let open PosixTypes in
   let open Lowlevel in
@@ -268,24 +270,12 @@ let create_reload_common kind wait name targets =
           then failwith (Printf.sprintf "dm_task_add_target %s failed" (Sexplib.Sexp.to_string (sexp_of_t t)));
         ) targets;
 
-      let cookie = allocate uint32_t (Unsigned.UInt32.of_int32 0l) in
-      let udev_flags = Unsigned.UInt16.of_int 0 in
-      if not (dm_task_set_cookie dm_task cookie udev_flags)
-      then failwith "dm_task_set_cookie";
-
       if not (dm_task_run dm_task)
       then failwith "dm_task_run failed";
-
-      if wait && (not (dm_udev_wait (!@ cookie)))
-      then failwith "dm_udev_wait failed";
     )
 
-let create = create_reload_common Lowlevel.DM_DEVICE_CREATE true
-let reload = create_reload_common Lowlevel.DM_DEVICE_RELOAD false
-
-let mknods x =
-  if not (Lowlevel.dm_mknodes x)
-  then failwith "dm_mknodes failed"
+let create = create_reload_common Lowlevel.DM_DEVICE_CREATE
+let reload = create_reload_common Lowlevel.DM_DEVICE_RELOAD
 
 type info = {
   suspended: bool;
@@ -345,6 +335,13 @@ let info name =
       then None
       else Some (read_info (read_targets dm_task null))
     )
+
+let mknod name path mode =
+  match info name with
+  | Some info ->
+    Lowlevel.mknod path mode (Int32.to_int info.major) (Int32.to_int info.minor)
+  | None ->
+    failwith (Printf.sprintf "Device mapper device %s not found" name)
 
 let ls () =
   let open Lowlevel in

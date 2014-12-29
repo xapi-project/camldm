@@ -114,9 +114,9 @@ val create: string -> Target.t list -> unit
 val reload: string -> Target.t list -> unit
 (** [reload name targets]: modifies the existing device [name] to have targets [targets] *)
 
-val mknods: string option -> unit
-(** [mknods (Some device)] creates the device nodes for [device]; [mknods None] creates
-    all device nodes system-wide. *)
+val mknod: string -> string -> int -> unit
+(** [mknod name path mode]: creates a Unix device node for device
+    [name] at [path] and with [mode] *)
 
 type info = {
   suspended: bool;
