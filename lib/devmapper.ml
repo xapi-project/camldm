@@ -291,7 +291,7 @@ type info = {
   targets: Target.t list;
 } with sexp
 
-let info name =
+let stat name =
   let open Ctypes in
   let open PosixTypes in
   let open Lowlevel in
@@ -337,7 +337,7 @@ let info name =
     )
 
 let mknod name path mode =
-  match info name with
+  match stat name with
   | Some info ->
     Lowlevel.mknod path mode (Int32.to_int info.major) (Int32.to_int info.minor)
   | None ->
