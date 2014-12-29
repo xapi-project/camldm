@@ -24,7 +24,7 @@ opam --version
 opam --git-version
 
 echo Installing opam
-opam init
+opam init -y
 eval `opam config env`
 opam pin add camldm . -n
 sudo apt-get install $(opam install camldm -e ubuntu) -y
