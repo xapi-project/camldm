@@ -22,7 +22,7 @@ Executable lib_test
   Build$:             flag(tests)
   Custom:             true
   Install:            false
-  BuildDepends:       camldm, oUnit
+  BuildDepends:       camldm, oUnit, re.str
 
 Test lib_test
   Run$:               flag(tests)

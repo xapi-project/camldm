@@ -12,6 +12,27 @@
  * GNU Lesser General Public License for more details.
  *)
 open Camldm
+open Utils
+
+let make_temp_volume () =
+  let path = Filename.temp_file Sys.argv.(0) "volume" in
+  ignore_string (run "dd" [ "if=/dev/zero"; "of=" ^ path; "seek=1024"; "bs=1M"; "count=1"]);
+  finally
+    (fun () ->
+      ignore_string (run "losetup" [ "-f"; path ]);
+      (* /dev/loop0: [fd00]:1973802 (/tmp/SR.createc04251volume) *)
+      let line = run "losetup" [ "-j"; path ] in
+      try
+        let i = String.index line ' ' in
+        String.sub line 0 (i - 1)
+      with e ->
+        error "Failed to parse output of losetup -j: [%s]" line;
+        ignore_string (run "losetup" [ "-d"; path ]);
+        failwith (Printf.sprintf "Failed to parse output of losetup -j: [%s]" line)
+    ) (fun () -> rm_f path)
+
+let remove_temp_volume volume =
+  ignore_string (run "losetup" [ "-d"; volume ])
 
 (*
 (* This test nolonger compiles *)
