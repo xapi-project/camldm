@@ -20,6 +20,8 @@ module Lowlevel = struct
   open PosixTypes
   open Foreign
 
+  let from = Dl.dlopen ~filename:"libdevmapper.so" ~flags:[Dl.RTLD_LAZY]
+
   type kind =
   | DM_DEVICE_CREATE
   | DM_DEVICE_RELOAD
@@ -47,21 +49,21 @@ module Lowlevel = struct
   let dm_task : dm_task typ = ptr (structure "dm_task")
   let dm_task_opt : dm_task option typ = ptr_opt (structure "dm_task")
 
-  let dm_task_create' = foreign "dm_task_create" (int @-> returning dm_task_opt)
+  let dm_task_create' = foreign ~from "dm_task_create" (int @-> returning dm_task_opt)
   let dm_task_create kind = dm_task_create' (dm_kind_to_int kind)
 
-  let dm_task_destroy = foreign "dm_task_destroy" (dm_task @-> returning void)
+  let dm_task_destroy = foreign ~from "dm_task_destroy" (dm_task @-> returning void)
 
   let bool = view ~read:((<>)0) ~write:(fun b -> compare b false) int
 
-  let dm_task_set_name = foreign "dm_task_set_name" (dm_task @-> string @-> returning bool)
-  let dm_task_set_uuid = foreign "dm_task_set_uuid" (dm_task @-> string @-> returning bool)
+  let dm_task_set_name = foreign ~from "dm_task_set_name" (dm_task @-> string @-> returning bool)
+  let dm_task_set_uuid = foreign ~from "dm_task_set_uuid" (dm_task @-> string @-> returning bool)
 
-  let dm_task_run = foreign "dm_task_run" (dm_task @-> returning bool)
+  let dm_task_run = foreign ~from "dm_task_run" (dm_task @-> returning bool)
   
-  let dm_task_add_target = foreign "dm_task_add_target" (dm_task @-> uint64_t @-> uint64_t @-> string @-> string @-> returning bool)
+  let dm_task_add_target = foreign ~from "dm_task_add_target" (dm_task @-> uint64_t @-> uint64_t @-> string @-> string @-> returning bool)
 
-  let dm_mknodes = foreign "dm_mknodes" (string_opt @-> returning bool)
+  let dm_mknodes = foreign ~from "dm_mknodes" (string_opt @-> returning bool)
 
   type dm_info = [ `Dm_info ] structure ptr
 
@@ -82,9 +84,9 @@ module Lowlevel = struct
   let dm_info : dm_info typ = ptr struct_dm_info
   let dm_info_opt : dm_info option typ = ptr_opt struct_dm_info
 
-  let dm_task_get_info = foreign "dm_task_get_info" (dm_task @-> dm_info @-> returning bool)
+  let dm_task_get_info = foreign ~from "dm_task_get_info" (dm_task @-> dm_info @-> returning bool)
 
-  let dm_get_next_target = foreign "dm_get_next_target" (dm_task @-> (ptr void) @-> (ptr uint64_t) @-> (ptr uint64_t) @-> (ptr string) @-> (ptr string) @-> returning (ptr void))
+  let dm_get_next_target = foreign ~from "dm_get_next_target" (dm_task @-> (ptr void) @-> (ptr uint64_t) @-> (ptr uint64_t) @-> (ptr string) @-> (ptr string) @-> returning (ptr void))
 
   let struct_dm_names = structure "dm_names"
   let struct_dm_names_dev = field struct_dm_names "dev" uint64_t
@@ -95,7 +97,7 @@ module Lowlevel = struct
   let dm_names : dm_names typ = ptr struct_dm_names
   let dm_names_opt : dm_names option typ = ptr_opt struct_dm_names
 
-  let dm_task_get_names = foreign "dm_task_get_names" (dm_task @-> returning dm_names_opt)
+  let dm_task_get_names = foreign ~from "dm_task_get_names" (dm_task @-> returning dm_names_opt)
 end
 
 let finally f g =
