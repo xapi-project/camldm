@@ -73,6 +73,8 @@ let read_sector path sector =
     >>= fun _ ->
     Lwt_cstruct.complete (Lwt_cstruct.read fd) buf
     >>= fun () ->
+    Lwt_unix.close fd
+    >>= fun () ->
     return buf in
   Lwt_main.run t
 
@@ -84,7 +86,9 @@ let write_sector path sector buf =
     >>= fun fd ->
     Lwt_unix.LargeFile.lseek fd offset Unix.SEEK_SET
     >>= fun _ ->
-    Lwt_cstruct.complete (Lwt_cstruct.write fd) buf in
+    Lwt_cstruct.complete (Lwt_cstruct.write fd) buf
+    >>= fun () ->
+    Lwt_unix.close fd in
   Lwt_main.run t
 
 let cstruct_equal a b =
