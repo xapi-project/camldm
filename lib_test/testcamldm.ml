@@ -14,29 +14,28 @@
 open Camldm
 open Utils
 
-let make_temp_volume () =
+let with_temp_file f =
   let path = Filename.temp_file Sys.argv.(0) "volume" in
   ignore_string (run "dd" [ "if=/dev/zero"; "of=" ^ path; "seek=1024"; "bs=1M"; "count=1"]);
+  finally (fun () -> f path) (fun () -> rm_f path)
+
+let with_temp_volume path f =
+  let dev =
+    ignore_string (run "losetup" [ "-f"; path ]);
+    (* /dev/loop0: [fd00]:1973802 (/tmp/SR.createc04251volume) *)
+    let line = run "losetup" [ "-j"; path ] in
+    try
+      let i = String.index line ' ' in
+      String.sub line 0 (i - 1)
+    with e ->
+      error "Failed to parse output of losetup -j: [%s]" line;
+      ignore_string (run "losetup" [ "-d"; path ]);
+      failwith (Printf.sprintf "Failed to parse output of losetup -j: [%s]" line) in
   finally
+    (fun () -> f dev)
     (fun () ->
-      ignore_string (run "losetup" [ "-f"; path ]);
-      (* /dev/loop0: [fd00]:1973802 (/tmp/SR.createc04251volume) *)
-      let line = run "losetup" [ "-j"; path ] in
-      try
-        let i = String.index line ' ' in
-        String.sub line 0 (i - 1)
-      with e ->
-        error "Failed to parse output of losetup -j: [%s]" line;
-        ignore_string (run "losetup" [ "-d"; path ]);
-        failwith (Printf.sprintf "Failed to parse output of losetup -j: [%s]" line)
-    ) (fun () -> rm_f path)
-
-let remove_temp_volume volume =
-  ignore_string (run "losetup" [ "-d"; volume ])
-
-let with_temp_volume f =
-  let dev = make_temp_volume () in
-  finally (fun () -> f dev) (fun () -> remove_temp_volume dev)
+      ignore_string (run "losetup" [ "-d"; dev ])
+    )
 
 open Devmapper
 
@@ -47,15 +46,18 @@ let create_dev_mapper_path () =
   Devmapper.mknod name dev_mapper_path 0o0644
 
 let create_destroy () =
-  with_temp_volume
-    (fun device ->
-      create name [];
-      finally
-        (fun () ->
-          let all = ls () in
-          if not(List.mem name all)
-          then failwith (Printf.sprintf "%s not in [ %s ]" name (String.concat "; " all))
-        ) (fun () -> remove name)
+  with_temp_file
+    (fun tmp ->
+      with_temp_volume tmp
+        (fun device ->
+          create name [];
+          finally
+            (fun () ->
+              let all = ls () in
+              if not(List.mem name all)
+              then failwith (Printf.sprintf "%s not in [ %s ]" name (String.concat "; " all))
+            ) (fun () -> remove name)
+        )
     )
 
 let constant_sector c =
@@ -106,65 +108,74 @@ let cstruct_equal a b =
   check_contents a b
 
 let write_read () =
-  with_temp_volume
-    (fun path ->
-      (* Write data to the underlying loop device first because
+  with_temp_file
+    (fun tmp ->
+      (* Write data to the underlying file first because
          it won't be coherent after the devmapper device is created on
          top. *)
-
       let ones = constant_sector 1 in
       let twos = constant_sector 2 in
-      write_sector path 0L ones;
-      write_sector path 1L twos;
+      write_sector tmp 0L ones;
+      write_sector tmp 1L twos;
 
-      let device = Location.Path path in
-      let targets = [
-        Target.({ start = 0L; size = 1L; kind = Linear Location.({device; offset = 1L}) });
-        Target.({ start = 1L; size = 1L; kind = Linear Location.({device; offset = 0L}) })
-      ] in
-      create name targets;
-      finally
-        (fun () ->
-          let all = ls () in
-          if not(List.mem name all)
-          then failwith (Printf.sprintf "%s not in [ %s ]" name (String.concat "; " all));
-          (* read via device mapper, expect the first two sectors to be
-             permuted (see targets above) *)
-          create_dev_mapper_path ();
-          let at_zero = read_sector dev_mapper_path 0L in
-          let at_one = read_sector dev_mapper_path 1L in
-          cstruct_equal ones at_one;
-          cstruct_equal twos at_zero
-        ) (fun () -> remove name)
-    )
-
-let write_read_striped () =
-  with_temp_volume
-    (fun path1 ->
-      let ones = constant_sector 1 in
-      write_sector path1 0L ones;
-      with_temp_volume
-        (fun path2 ->
-          let twos = constant_sector 2 in
-          write_sector path2 0L twos;
-
-          let device1 = Location.Path path1 in
-          let device2 = Location.Path path2 in
-          let stripes = Location.([| { device = device1; offset = 0L }; { device = device2; offset = 0L } |]) in
+      with_temp_volume tmp
+        (fun path ->
+          let device = Location.Path path in
           let targets = [
-            Target.({ start=0L; size = 16L; kind = Striped Striped.({size = 8L; stripes; }) })
+            Target.({ start = 0L; size = 1L; kind = Linear Location.({device; offset = 1L}) });
+            Target.({ start = 1L; size = 1L; kind = Linear Location.({device; offset = 0L}) })
           ] in
           create name targets;
           finally
-             (fun () ->
-               create_dev_mapper_path ();
-               let at_zero = read_sector dev_mapper_path 0L in
-               let at_eight = read_sector dev_mapper_path 8L in
-               cstruct_equal ones at_zero;
-               cstruct_equal twos at_eight;
-             ) (fun () -> remove name)
+            (fun () ->
+              let all = ls () in
+              if not(List.mem name all)
+              then failwith (Printf.sprintf "%s not in [ %s ]" name (String.concat "; " all));
+              (* read via device mapper, expect the first two sectors to be
+                 permuted (see targets above) *)
+              create_dev_mapper_path ();
+              let at_zero = read_sector dev_mapper_path 0L in
+              let at_one = read_sector dev_mapper_path 1L in
+              cstruct_equal ones at_one;
+              cstruct_equal twos at_zero
+            ) (fun () -> remove name)
         )
     )
+
+let write_read_striped () =
+  with_temp_file
+    (fun tmp1 ->
+      let ones = constant_sector 1 in
+      write_sector tmp1 0L ones;
+      with_temp_file
+        (fun tmp2 ->
+          let twos = constant_sector 2 in
+          write_sector tmp2 0L twos;
+
+          with_temp_volume tmp1
+            (fun path1 ->
+              with_temp_volume tmp2
+                (fun path2 ->
+
+                  let device1 = Location.Path path1 in
+                  let device2 = Location.Path path2 in
+                  let stripes = Location.([| { device = device1; offset = 0L }; { device = device2; offset = 0L } |]) in
+                  let targets = [
+                    Target.({ start=0L; size = 16L; kind = Striped Striped.({size = 8L; stripes; }) })
+                  ] in
+                  create name targets;
+                  finally
+                    (fun () ->
+                      create_dev_mapper_path ();
+                      let at_zero = read_sector dev_mapper_path 0L in
+                      let at_eight = read_sector dev_mapper_path 8L in
+                      cstruct_equal ones at_zero;
+                      cstruct_equal twos at_eight;
+                    ) (fun () -> remove name)
+                )
+            )
+        )
+     )
 
 open OUnit
 
