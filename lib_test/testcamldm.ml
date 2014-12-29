@@ -54,6 +54,50 @@ let create_destroy () =
         ) (fun () -> remove name)
     )
 
+let constant_sector c =
+  let sector = Cstruct.create 512 in
+  for i = 0 to Cstruct.len sector - 1 do
+    Cstruct.set_uint8 sector i c
+  done;
+  sector
+
+let read_sector path sector =
+  let open Lwt in
+  let offset = Int64.mul sector 512L in
+  let buf = constant_sector 9 in
+  let t =
+    Lwt_unix.openfile path [ Lwt_unix.O_RDONLY ] 0
+    >>= fun fd ->
+    Lwt_unix.LargeFile.lseek fd offset Unix.SEEK_SET
+    >>= fun _ ->
+    Lwt_cstruct.complete (Lwt_cstruct.read fd) buf
+    >>= fun () ->
+    return buf in
+  Lwt_main.run t
+
+let write_sector path sector buf =
+  let open Lwt in
+  let offset = Int64.mul sector 512L in
+  let t =
+    Lwt_unix.openfile path [ Lwt_unix.O_WRONLY ] 0
+    >>= fun fd ->
+    Lwt_unix.LargeFile.lseek fd offset Unix.SEEK_SET
+    >>= fun _ ->
+    Lwt_cstruct.complete (Lwt_cstruct.write fd) buf in
+  Lwt_main.run t
+
+let cstruct_equal a b =
+  let check_contents a b =
+    try
+      for i = 0 to Cstruct.len a - 1 do
+        let a' = Cstruct.get_uint8 a i in
+        let b' = Cstruct.get_uint8 b i in
+        if a' <> b' then failwith (Printf.sprintf "buffers differ at %d: %d <> %d" i a' b')
+      done;
+      true
+    with _ -> false in
+  (Cstruct.len a = (Cstruct.len b)) && (check_contents a b)
+
 let write_read () =
   with_temp_volume
     (fun device ->
