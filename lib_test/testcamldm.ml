@@ -177,28 +177,6 @@ let finally f g =
     g ();
     raise e
 
-let with_task kind f =
-  let open Devmapper.Lowlevel in
-  match dm_task_create DM_DEVICE_CREATE with
-  | None ->
-    failwith "dm_task_create returned NULL: check permissions?"
-  | Some dmt ->
-    finally
-      (fun () -> f dmt)
-      (fun () -> dm_task_destroy dmt)
-
-let set_name () =
-  let open Devmapper.Lowlevel in
-  with_task DM_DEVICE_CREATE
-    (fun dmt ->
-      if not (dm_task_set_name dmt "hello")
-      then failwith "dm_task_set_name";
-      if not (dm_task_set_uuid dmt "there")
-      then failwith "dm_task_set_uuid";
-    )
-
-let create_destroy () = with_task Devmapper.Lowlevel.DM_DEVICE_CREATE (fun _ -> ())
-
 let ls () =
   let (_: string list) = Devmapper.ls () in
   ()
@@ -208,8 +186,6 @@ let _ =
   (try Devmapper.remove name with _ -> ());
   let suite = "devicemapper" >:::
     [
-      "create_destroy" >:: create_destroy;
-      "set name and uuid" >:: set_name;
       "ls" >:: ls;
       "create_destroy" >:: create_destroy;
       "write_read" >:: write_read;
