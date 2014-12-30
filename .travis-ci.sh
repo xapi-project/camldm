@@ -26,7 +26,7 @@ opam --git-version
 echo Installing opam
 opam init -y
 eval `opam config env`
-opam pin add test-camldm . -y
+opam pin add test-camldm . -y || true
 sudo apt-get install $(opam install test-camldm -e ubuntu) -y
 opam install test-camldm -y
 make
