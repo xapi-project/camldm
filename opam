@@ -15,6 +15,10 @@ depends: [
   "ctypes"
   "oasis"
   "ounit"
+  "cstruct"
+  "lwt"
+  "re"
+  "stringext"
 ] 
 os: ["linux"]
 depexts: [
