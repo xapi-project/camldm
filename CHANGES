@@ -1,5 +1,6 @@
 trunk (unreleased)
 - Rename module to Devmapper (from Camldm)
+- Rename ocamlfind package to devmapper (from camldm)
 - Use Ctypes to replace most of the C stubs
 - document the interface
 

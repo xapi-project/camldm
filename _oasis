@@ -1,14 +1,14 @@
 OASISFormat:  0.3
-Name:         camldm
+Name:         devmapper
 Version:      0.9
-Synopsis:     Bindings to libdevicemapper
+Synopsis:     Bindings to libdevmapper
 License:      LGPL-2.1 with OCaml linking exception
 Authors:      various
 Copyrights:   (C) 2012 Citrix
 BuildTools:   ocamlbuild
 Plugins:      DevFiles (0.3), META (0.3)
 
-Library               camldm
+Library               devmapper
   Path:               lib
   Modules:            Devmapper
   CSources:           camldm_stubs.c, devmapper_stubs.c
@@ -22,7 +22,7 @@ Executable lib_test
   Build$:             flag(tests)
   Custom:             true
   Install:            false
-  BuildDepends:       camldm, oUnit, re.str, lwt.unix, cstruct, cstruct.lwt
+  BuildDepends:       devmapper, oUnit, re.str, lwt.unix, cstruct, cstruct.lwt
 
 Test lib_test
   Run$:               flag(tests)
