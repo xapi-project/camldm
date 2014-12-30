@@ -64,8 +64,12 @@ val remove: device -> unit
 
 val create: device -> Target.t list -> unit
 (** [create device targets]: creates a device with name [device] and
-    targets [targets]. This function blocks until the udev event has
-    fired and the /dev/mapper device has been created. *)
+    targets [targets]. This function returns before any generated udev events
+    have been processed, but the client may use [mknod] to manually create
+    a device node, which will be fully functional.
+
+    It seems that the targets must be contiguous, leaving no unmapped gap
+    in the source device. *)
 
 val reload: device -> Target.t list -> unit
 (** [reload device targets]: modifies the existing device [device] to
