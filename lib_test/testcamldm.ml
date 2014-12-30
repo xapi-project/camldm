@@ -142,6 +142,57 @@ let write_read () =
         )
     )
 
+let write_read_reload () =
+  with_temp_file
+    (fun tmp ->
+      (* Write data to the underlying file first because
+         it won't be coherent after the devmapper device is created on
+         top. *)
+      let ones = constant_sector 1 in
+      let twos = constant_sector 2 in
+      write_sector tmp 0L ones;
+      write_sector tmp 1L twos;
+
+      with_temp_volume tmp
+        (fun path ->
+          let device = Location.Path path in
+          let targets = [
+            Target.({ start = 0L; size = 1L; kind = Linear Location.({device; offset = 1L}) });
+            Target.({ start = 1L; size = 1L; kind = Linear Location.({device; offset = 0L}) })
+          ] in
+          create name targets;
+          finally
+            (fun () ->
+              let all = ls () in
+              if not(List.mem name all)
+              then failwith (Printf.sprintf "%s not in [ %s ]" name (String.concat "; " all));
+              (* read via device mapper, expect the first two sectors to be
+                 permuted (see targets above) *)
+              create_dev_mapper_path ();
+              let at_zero = read_sector dev_mapper_path 0L in
+              let at_one = read_sector dev_mapper_path 1L in
+              cstruct_equal ones at_one;
+              cstruct_equal twos at_zero;
+              let targets = [
+                (* The first two are flipped around *)
+                Target.({ start = 0L; size = 1L; kind = Linear Location.({device; offset = 0L}) });
+                Target.({ start = 1L; size = 1L; kind = Linear Location.({device; offset = 1L}) });
+                (* This new target has been added, extending the device *)
+                Target.({ start = 2L; size = 1L; kind = Linear Location.({device; offset = 0L}) })
+              ] in
+              reload name targets;
+              suspend name;
+              resume name;
+              let at_zero = read_sector dev_mapper_path 0L in
+              let at_one = read_sector dev_mapper_path 1L in
+              let at_two = read_sector dev_mapper_path 2L in
+              cstruct_equal ones at_zero;
+              cstruct_equal twos at_one;
+              cstruct_equal ones at_two;
+
+            ) (fun () -> remove name)
+        )
+    )
 let write_read_striped () =
   with_temp_file
     (fun tmp1 ->
@@ -200,6 +251,7 @@ let _ =
       "ls" >:: ls;
       "create_destroy" >:: create_destroy;
       "write_read" >:: write_read;
+      "write_read_reload" >:: write_read_reload;
       "write_read_striped" >:: write_read_striped;
     ] in
   run_test_tt suite

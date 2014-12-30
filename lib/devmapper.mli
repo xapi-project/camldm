@@ -62,13 +62,6 @@ end
 val remove: device -> unit
 (** [remove device]: remove the device mapper device with name [device] *)
 
-val suspend: device -> unit
-(** [suspend device]: suspends the device mapper device with name [device] *)
-
-val resume: device -> unit
-(** [resume device]: resumes the suspended device mapper device with name [device] *)
-
-
 val create: device -> Target.t list -> unit
 (** [create device targets]: creates a device with name [device] and
     targets [targets]. This function blocks until the udev event has
@@ -76,7 +69,16 @@ val create: device -> Target.t list -> unit
 
 val reload: device -> Target.t list -> unit
 (** [reload device targets]: modifies the existing device [device] to
-    have targets [targets] *)
+    have targets [targets]. The modifications will only take effect
+    after the device is suspended and resumed.*)
+
+val suspend: device -> unit
+(** [suspend device]: suspends the device mapper device with name [device] *)
+
+val resume: device -> unit
+(** [resume device]: resumes the suspended device mapper device with
+    name [device]. If the targets have been reloaded then the new values
+    will take effect. *)
 
 val mknod: device -> string -> int -> unit
 (** [mknod device path mode]: creates a Unix device node for device
