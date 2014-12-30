@@ -10,7 +10,7 @@ Plugins:      DevFiles (0.3), META (0.3)
 
 Library camldm
   Path: lib
-  Modules: Camldm, Devmapper
+  Modules: Devmapper
   CSources: camldm_stubs.c, devmapper_stubs.c
   CCLib: -ldevmapper
   BuildDepends: rpclib, rpclib.syntax, ctypes (>= 0.3.0), ctypes.foreign, sexplib, sexplib.syntax, stringext
