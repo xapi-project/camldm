@@ -1,4 +1,5 @@
 OCaml bindings to libdevicemapper.
+----------------------------------
 
 In a Linux environment, with enough privileges to read device-mapper data
 (e.g. where the LVM command "lvs" works):
