@@ -1,38 +1,30 @@
-# OASIS_START
-# DO NOT EDIT (digest: bc1e05bfc8b39b664f29dae8dbd3ebbb)
 
-SETUP = ocaml setup.ml
-
+.PHONY: build
 build: setup.data
-	$(SETUP) -build $(BUILDFLAGS)
+	ocaml setup.ml -build
 
-doc: setup.data build
-	$(SETUP) -doc $(DOCFLAGS)
+setup.data: setup.ml
+	ocaml setup.ml -configure --enable-tests
 
-test: setup.data build
-	$(SETUP) -test $(TESTFLAGS)
+setup.ml: _oasis
+	oasis setup
 
-all: 
-	$(SETUP) -all $(ALLFLAGS)
+.PHONY: install
+install: build
+	ocaml setup.ml -install
 
-install: setup.data
-	$(SETUP) -install $(INSTALLFLAGS)
+.PHONY: test
+test: build
+	sudo ocaml setup.ml -test
 
-uninstall: setup.data
-	$(SETUP) -uninstall $(UNINSTALLFLAGS)
+.PHONY: uninstall
+uninstall:
+	rm -f ${BINDIR}/xe
 
-reinstall: setup.data
-	$(SETUP) -reinstall $(REINSTALLFLAGS)
+.PHONY: clean
+clean:
+	ocaml setup.ml -clean
 
-clean: 
-	$(SETUP) -clean $(CLEANFLAGS)
-
-distclean: 
-	$(SETUP) -distclean $(DISTCLEANFLAGS)
-
-setup.data:
-	$(SETUP) -configure $(CONFIGUREFLAGS)
-
-.PHONY: build doc test all install uninstall reinstall clean distclean configure
-
-# OASIS_STOP
+.PHONY: distclean
+distclean: clean
+	rm -f setup.log setup.data setup.ml _tags myocamlbuild.ml

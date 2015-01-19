@@ -1,0 +1,8 @@
+trunk (unreleased)
+- Rename module to Devmapper (from Camldm)
+- Rename ocamlfind package to devmapper (from camldm)
+- Use Ctypes to replace most of the C stubs
+- document the interface
+
+0.1.0 (18-Nov-2013)
+- Initial release
