@@ -6,7 +6,7 @@ build: [
 ]
 remove: [
   [make "uninstall" "BINDIR=%{bin}%"]
-  ["ocamlfind" "remove" "camldm"]
+  ["ocamlfind" "remove" "devmapper"]
 ]
 depends: [
   "ocamlfind"
