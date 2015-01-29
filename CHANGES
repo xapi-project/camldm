@@ -1,3 +1,6 @@
+trunk (unreleased)
+- stat now returns None if the device query fails.
+
 0.9.0 (19-1-2015)
 - Rename module to Devmapper (from Camldm)
 - Rename ocamlfind package to devmapper (from camldm)
