@@ -243,6 +243,11 @@ let ls () =
   let (_: string list) = Devmapper.ls () in
   ()
 
+let stat_none () =
+  match stat "namethatdoesnotexist" with
+  | None -> ()
+  | Some _ -> failwith "stat_none: got Some rather than None"
+
 let _ =
   (* Clean up leftovers from previous runs *)
   (try Devmapper.remove name with _ -> ());
@@ -253,6 +258,7 @@ let _ =
       "write_read" >:: write_read;
       "write_read_reload" >:: write_read_reload;
       "write_read_striped" >:: write_read_striped;
+      "stat_none" >:: stat_none;
     ] in
   run_test_tt suite
     
