@@ -323,18 +323,20 @@ let stat name =
     let deferred_remove = getf dm_info struct_dm_info_deferred_remove in
     { suspended; live_table; inactive_table; open_count; event_nr;
       major; minor; read_only; target_count; deferred_remove; targets } in
-  with_task DM_DEVICE_TABLE
-    (fun dm_task ->
-      if not (dm_task_set_name dm_task name)
-      then failwith (Printf.sprintf "dm_task_set_name %s failed" name);
-      if not (dm_task_run dm_task)
-      then failwith "dm_task_run failed";
-      if not (dm_task_get_info dm_task (addr dm_info))
-      then failwith "dm_task_get_info failed";
-      if getf dm_info struct_dm_info_exists = 0
-      then None
-      else Some (read_info (read_targets dm_task null))
-    )
+  try
+    with_task DM_DEVICE_TABLE
+      (fun dm_task ->
+        if not (dm_task_set_name dm_task name)
+        then failwith (Printf.sprintf "dm_task_set_name %s failed" name);
+        if not (dm_task_run dm_task)
+        then failwith "dm_task_run failed";
+        if not (dm_task_get_info dm_task (addr dm_info))
+        then failwith "dm_task_get_info failed";
+        if getf dm_info struct_dm_info_exists = 0
+        then None
+        else Some (read_info (read_targets dm_task null))
+      )
+  with _ -> None
 
 let mknod name path mode =
   match stat name with

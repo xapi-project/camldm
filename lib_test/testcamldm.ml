@@ -15,7 +15,7 @@ open Devmapper
 open Utils
 
 let with_temp_file f =
-  let path = Filename.temp_file Sys.argv.(0) "volume" in
+  let path = Filename.temp_file (Filename.basename Sys.argv.(0)) "volume" in
   ignore_string (run "dd" [ "if=/dev/zero"; "of=" ^ path; "seek=1024"; "bs=1M"; "count=1"]);
   finally (fun () -> f path) (fun () -> rm_f path)
 
@@ -243,6 +243,11 @@ let ls () =
   let (_: string list) = Devmapper.ls () in
   ()
 
+let stat_none () =
+  match stat "namethatdoesnotexist" with
+  | None -> ()
+  | Some _ -> failwith "stat_none: got Some rather than None"
+
 let _ =
   (* Clean up leftovers from previous runs *)
   (try Devmapper.remove name with _ -> ());
@@ -253,6 +258,7 @@ let _ =
       "write_read" >:: write_read;
       "write_read_reload" >:: write_read_reload;
       "write_read_striped" >:: write_read_striped;
+      "stat_none" >:: stat_none;
     ] in
   run_test_tt suite
     
