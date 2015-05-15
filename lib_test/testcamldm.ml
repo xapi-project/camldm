@@ -250,15 +250,15 @@ let stat_none () =
 
 let _ =
   (* Clean up leftovers from previous runs *)
-  (try Devmapper.remove name with _ -> ());
-  let suite = "devicemapper" >:::
-    [
-      "ls" >:: ls;
-      "create_destroy" >:: create_destroy;
-      "write_read" >:: write_read;
-      "write_read_reload" >:: write_read_reload;
-      "write_read_striped" >:: write_read_striped;
-      "stat_none" >:: stat_none;
-    ] in
-  run_test_tt suite
-    
+  (try Devmapper.remove name with _ -> ())
+
+let suite = "devicemapper" >:::
+  [
+    "ls" >:: ls;
+    "create_destroy" >:: create_destroy;
+    "write_read" >:: write_read;
+    "write_read_reload" >:: write_read_reload;
+    "write_read_striped" >:: write_read_striped;
+    "stat_none" >:: stat_none;
+  ]
+
