@@ -12,6 +12,7 @@
  * GNU Lesser General Public License for more details.
  *)
 open Devmapper
+open Devmapper.Linux
 open Utils
 
 let with_temp_file f =
@@ -37,13 +38,11 @@ let with_temp_volume path f =
       ignore_string (run "losetup" [ "-d"; dev ])
     )
 
-open Devmapper
-
 let name = "testdevmapper"
 let dev_mapper_path = "/tmp/" ^ name
 let create_dev_mapper_path () =
   (try Unix.unlink dev_mapper_path with _ -> ());
-  Devmapper.mknod name dev_mapper_path 0o0644
+  mknod name dev_mapper_path 0o0644
 
 let create_destroy () =
   with_temp_file
@@ -240,7 +239,7 @@ let finally f g =
     raise e
 
 let ls () =
-  let (_: string list) = Devmapper.ls () in
+  let (_: string list) = ls () in
   ()
 
 let stat_none () =
@@ -250,7 +249,7 @@ let stat_none () =
 
 let _ =
   (* Clean up leftovers from previous runs *)
-  (try Devmapper.remove name with _ -> ())
+  (try remove name with _ -> ())
 
 let suite = "devicemapper" >:::
   [
