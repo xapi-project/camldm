@@ -3,8 +3,8 @@ open OUnit
 
 let _ =
   let tests = TestList [
-    Testcamldm.suite;
-    Testcamldmmock.suite;
+    Testlinux.suite;
+    Testmock.suite;
   ] in
   run_test_tt tests
 

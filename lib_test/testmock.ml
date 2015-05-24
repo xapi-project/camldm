@@ -1,39 +1,39 @@
 
 open OUnit
 
-module DM = Devmapper_mock
+open Devmapper
 
 let make_location path offset = {
-  DM.Location.
-  device = DM.Location.Path path;
+  Location.
+  device = Location.Path path;
   offset = Int64.of_int offset;
 }
 
 let make_linear start size path offset = {
-  DM.Target.
+  Target.
   start = Int64.of_int start;
   size = Int64.of_int size;
-  kind = DM.Target.Linear (make_location path offset);
+  kind = Target.Linear (make_location path offset);
 }
 
 let make_striped start size stripe_size stripes = {
-  DM.Target.
+  Target.
   start = Int64.of_int start;
   size = Int64.of_int size;
-  kind = DM.Target.Striped {
-    DM.Striped.size = Int64.of_int stripe_size;
-    DM.Striped.stripes = Array.of_list stripes;
+  kind = Target.Striped {
+    Striped.size = Int64.of_int stripe_size;
+    Striped.stripes = Array.of_list stripes;
   };
 }
 
 let test_overlap () =
   let with_overlap ?(overlaps=1) targets =
-    DM.clear ();
-    assert_raises (Failure (Printf.sprintf "%d overlap(s) detected" overlaps)) (fun () -> DM.create "device" targets)
+    Mock.clear ();
+    assert_raises (Failure (Printf.sprintf "%d overlap(s) detected" overlaps)) (fun () -> Mock.create "device" targets)
   in
   let without_overlap targets =
-    DM.clear ();
-    DM.create "name" targets
+    Mock.clear ();
+    Mock.create "name" targets
   in
 
   (* no target at all *)
@@ -69,51 +69,51 @@ let test_overlap () =
   ];
 
   (* clear up *)
-  DM.clear ()
+  Mock.clear ()
 
 let test_reload () =
-  DM.clear ();
+  Mock.clear ();
 
-  DM.create "dev" [];
+  Mock.create "dev" [];
   begin
-    match DM.stat "dev" with
-    | None -> failwith "DM.stat yield None"
-    | Some info -> assert_equal [] info.DM.targets
+    match Mock.stat "dev" with
+    | None -> failwith "Mock.stat yield None"
+    | Some info -> assert_equal [] info.Mock.targets
   end;
 
   let new_target = make_linear 0 1024 "dev1" 0 in
-  DM.suspend "dev";
-  DM.reload "dev" [new_target];
-  DM.resume "dev";
+  Mock.suspend "dev";
+  Mock.reload "dev" [new_target];
+  Mock.resume "dev";
   begin
-    match DM.stat "dev" with
-    | None -> failwith "DM.stat yield None"
+    match Mock.stat "dev" with
+    | None -> failwith "Mock.stat yield None"
     | Some info ->
-        let targets = info.DM.targets in
+        let targets = info.Mock.targets in
         assert_equal 1 (List.length targets);
         let target = List.hd targets in
         assert_equal new_target target
   end;
 
   (* clear up *)
-  DM.clear ()
+  Mock.clear ()
 
 let test_create_remove () =
-  DM.clear ();
+  Mock.clear ();
 
-  DM.create "dev" [];
-  assert_raises (Failure "dev already exists") (fun () -> DM.create "dev" []);
-  assert_equal ["dev"] (DM.ls ());
+  Mock.create "dev" [];
+  assert_raises (Failure "dev already exists") (fun () -> Mock.create "dev" []);
+  assert_equal ["dev"] (Mock.ls ());
 
-  DM.remove "dev";
-  assert_equal [] (DM.ls ());
-  assert_raises (Failure "dev does not exist") (fun () -> DM.remove "dev");
+  Mock.remove "dev";
+  assert_equal [] (Mock.ls ());
+  assert_raises (Failure "dev does not exist") (fun () -> Mock.remove "dev");
 
   (* clear up *)
-  DM.clear ()
+  Mock.clear ()
 
 let test_load_save () =
-  DM.clear ();
+  Mock.clear ();
 
   let dev1_targets = [] in
   let dev2_targets = [
@@ -124,22 +124,22 @@ let test_load_save () =
     make_striped 0 1024 32 [make_location "dev31" 0; make_location "dev32" 512];
     make_striped 1024 1024 32 [make_location "dev33" 0; make_location "dev34" 0];
   ] in
-  DM.create "dev1" dev1_targets;
-  DM.create "dev2" dev2_targets;
-  DM.create "dev3" dev3_targets;
+  Mock.create "dev1" dev1_targets;
+  Mock.create "dev2" dev2_targets;
+  Mock.create "dev3" dev3_targets;
 
   let temp_file = Filename.temp_file "dm-mock" "" in
-  DM.save_file temp_file;
-  DM.load_file temp_file;
+  Mock.save_file temp_file;
+  Mock.load_file temp_file;
 
-  assert_equal 3 (List.length (DM.ls ()));
-  assert_equal ["dev1";"dev2";"dev3"] (List.sort compare (DM.ls ()));
+  assert_equal 3 (List.length (Mock.ls ()));
+  assert_equal ["dev1";"dev2";"dev3"] (List.sort compare (Mock.ls ()));
 
   let assert_targets_equal targets dev =
-    match DM.stat dev with
-    | None -> failwith "DM.stat yield None"
+    match Mock.stat dev with
+    | None -> failwith "Mock.stat yield None"
     | Some info ->
-        assert_equal targets info.DM.targets
+        assert_equal targets info.Mock.targets
   in
   assert_targets_equal dev1_targets "dev1";
   assert_targets_equal dev2_targets "dev2";
@@ -147,7 +147,18 @@ let test_load_save () =
 
   (* clear up *)
   Unix.unlink temp_file;
-  DM.clear ()
+  Mock.clear ()
+
+let test_real_mock () =
+  let select which : (module Devmapper.S.DEVMAPPER) =
+    if which then
+      (module Devmapper.Linux)
+    else
+      (module Devmapper.Mock)
+  in
+  let dm = select false in
+  let module DM = (val dm : Devmapper.S.DEVMAPPER) in
+  ignore (DM.ls ())
 
 let suite = "devmapper_mock" >:::
   [
@@ -155,5 +166,6 @@ let suite = "devmapper_mock" >:::
     "test_reload" >:: test_reload;
     "test_create_remove" >:: test_create_remove;
     "test_load_save" >:: test_load_save;
+    "test_real_mock" >:: test_real_mock;
   ]
 

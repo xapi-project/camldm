@@ -1,122 +1,18 @@
+(*
+ * Copyright (C) 2015 Citrix Systems Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published
+ * by the Free Software Foundation; version 2.1 only. with the special
+ * exception on linking described in file LICENSE.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *)
 
 open Sexplib.Std
-
-(* Location, Striped and Target are copied from devmapper.ml *)
-
-module Location = struct
-  type device =
-  | Number of int32 * int32 (** major * minor *)
-  | Path of string
-  with sexp
-
-  type t = {
-    device: device;
-    offset: int64; (* sectors *)
-  } with sexp
-
-  let marshal t = match t.device with
-  | Number (major, minor) -> Printf.sprintf "%ld:%ld %Ld" major minor t.offset
-  | Path x -> Printf.sprintf "%s %Ld" x t.offset
-
-  let unmarshal x =
-    let error () = `Error (Printf.sprintf "Cannot parse location: %s" x) in
-    match Stringext.split ~max:2 x ~on:' ' with
-    | [ majorminor; offset ] ->
-      begin match Stringext.split ~max:2 majorminor ~on:':' with
-      | [ major; minor ] ->
-        begin
-          try
-            let major = Int32.of_string major in
-            let minor = Int32.of_string minor in
-            let device = Number (major, minor) in
-            let offset = Int64.of_string offset in
-            `Ok { device; offset }
-          with _ ->
-            error ()
-        end
-      | _ ->
-        begin
-          try
-            let device = Path majorminor in
-            let offset = Int64.of_string offset in
-            `Ok { device; offset }
-          with _ ->
-            error ()
-        end
-      end
-    | _ -> error ()
-end
-
-module Striped = struct
-  type t = {
-    size: int64; (* sectors, a power of 2 and at least PAGE_SIZE *)
-    stripes: Location.t array;
-  } with sexp
-
-  let marshal t =
-    Printf.sprintf "%d %Ld %s" (Array.length t.stripes) t.size
-      (String.concat " " (Array.(to_list (map Location.marshal t.stripes))))
-
-  let unmarshal x =
-    try
-      match Stringext.split ~max:3 x ~on:' ' with
-      | [ length; size; stripes ] ->
-        let rec loop remaining =
-          match Stringext.split ~max:3 remaining ~on:' ' with
-          | [] -> []
-          | a :: b :: rest ->
-            let this = match Location.unmarshal (a ^ " " ^ b) with
-            | `Ok x -> x
-            | `Error x -> failwith x in
-            let remaining = String.concat "" rest in
-            this :: (loop remaining)
-          | [ x ] ->
-            failwith ("Trailing junk in Striped.unmarshal: " ^ x) in
-        let length = int_of_string length in
-        let size = Int64.of_string size in
-        let stripes = Array.of_list (loop stripes) in
-        if Array.length stripes <> length
-        then failwith (Printf.sprintf "Striped.unmarshal length doesn't match: %d <> %d" length (Array.length stripes));
-        `Ok { size; stripes }
-      | _ ->
-        failwith ("Failed to parse in Striped.unmarshal: " ^ x)
-    with Failure msg ->
-      `Error msg
-    | e ->
-      `Error ("Striped.unmarshal caught: " ^ (Printexc.to_string e))
-end
-
-module Target = struct
-  type kind =
-  | Linear of Location.t
-  | Striped of Striped.t
-  | Unknown of string * string
-  with sexp
-
-  type t = {
-    start: int64; (* sectors *)
-    size: int64;  (* sectors *)
-    kind: kind;
-  } with sexp
-
-  let marshal = function
-  | Unknown(ttype, params) -> ttype, params
-  | Linear l -> "linear", Location.marshal l
-  | Striped s -> "striped", Striped.marshal s
-
-  let unmarshal (ttype, params) = match ttype with
-  | "linear" ->
-    begin match Location.unmarshal params with
-    | `Ok l -> Linear l
-    | `Error msg -> failwith msg
-    end
-  | "striped" ->
-    begin match Striped.unmarshal params with
-    | `Ok s -> Striped s
-    | `Error msg -> failwith msg
-    end
-  | _ -> Unknown(ttype, params)
-end
 
 type info = {
   suspended: bool;
