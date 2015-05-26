@@ -1,5 +1,6 @@
-trunk (unreleased)
+0.10.0 (26-5-2015)
 - stat now returns None if the device query fails.
+- pack the module, add signatures in Devmapper.S and a mock in Devmapper.Mock
 
 0.9.0 (19-1-2015)
 - Rename module to Devmapper (from Camldm)
