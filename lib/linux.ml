@@ -42,7 +42,27 @@ module Lowlevel = struct
   | DM_DEVICE_LIST_VERSIONS
   | DM_DEVICE_TARGET_MSG
   | DM_DEVICE_SET_GEOMETRY
-  external dm_kind_to_int: kind -> int = "dm_kind_to_int"
+  (* These must match libdevmapper.h: *)
+  let dm_kind_to_int = function
+  | DM_DEVICE_CREATE        -> 0
+  | DM_DEVICE_RELOAD        -> 1
+  | DM_DEVICE_REMOVE        -> 2
+  | DM_DEVICE_REMOVE_ALL    -> 3
+  | DM_DEVICE_SUSPEND       -> 4
+  | DM_DEVICE_RESUME        -> 5
+  | DM_DEVICE_INFO          -> 6
+  | DM_DEVICE_DEPS          -> 7
+  | DM_DEVICE_RENAME        -> 8
+  | DM_DEVICE_VERSION       -> 9
+  | DM_DEVICE_STATUS        -> 10
+  | DM_DEVICE_TABLE         -> 11
+  | DM_DEVICE_WAITEVENT     -> 12
+  | DM_DEVICE_LIST          -> 13
+  | DM_DEVICE_CLEAR         -> 14
+  | DM_DEVICE_MKNODES       -> 15
+  | DM_DEVICE_LIST_VERSIONS -> 16
+  | DM_DEVICE_TARGET_MSG    -> 17
+  | DM_DEVICE_SET_GEOMETRY  -> 18
 
   type dm_task = [ `Dm_task ] structure ptr
 
