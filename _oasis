@@ -13,7 +13,6 @@ Library               devmapper
   Path:               lib
   Modules:            S, Location, Striped, Target, Linux, Mock
   CSources:           camldm_stubs.c
-  CCLib:              -ldevmapper
   BuildDepends:       rpclib, rpclib.syntax, ctypes (>= 0.3.0), ctypes.foreign, sexplib, sexplib.syntax, stringext
 
 Executable lib_test
