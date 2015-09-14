@@ -1,6 +1,6 @@
 OASISFormat:  0.3
 Name:         devmapper
-Version:      0.10
+Version:      0.10.1
 Synopsis:     Bindings to libdevmapper
 License:      LGPL-2.1 with OCaml linking exception
 Authors:      various
