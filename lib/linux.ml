@@ -106,7 +106,7 @@ module Lowlevel = struct
 
   let dm_task_get_info = foreign ~from "dm_task_get_info" (dm_task @-> dm_info @-> returning bool)
 
-  let dm_get_next_target = foreign ~from "dm_get_next_target" (dm_task @-> (ptr void) @-> (ptr uint64_t) @-> (ptr uint64_t) @-> (ptr string) @-> (ptr string) @-> returning (ptr void))
+  let dm_get_next_target = foreign ~from "dm_get_next_target" (dm_task @-> (ptr void) @-> (ptr uint64_t) @-> (ptr uint64_t) @-> (ptr string_opt) @-> (ptr string_opt) @-> returning (ptr void))
 
   let struct_dm_names = structure "dm_names"
   let struct_dm_names_dev = field struct_dm_names "dev" uint64_t
@@ -204,17 +204,20 @@ let stat name =
   let rec read_targets dm_task next =
     let start = allocate uint64_t (Unsigned.UInt64.of_int64 0L) in
     let size = allocate uint64_t (Unsigned.UInt64.of_int64 0L) in
-    let ttype = allocate string "" in
-    let params = allocate string "" in
+    let ttype = allocate string_opt None in
+    let params = allocate string_opt None in
     let next = dm_get_next_target dm_task next start size ttype params in
     let start = Unsigned.UInt64.to_int64 (!@ start) in
     let size = Unsigned.UInt64.to_int64 (!@ size) in
     let open Target in
-    let kind = unmarshal (!@ ttype, !@ params) in
-    let target = { start; size; kind } in
-    if next = null
-    then [ target ]
-    else target :: (read_targets dm_task next) in
+    match !@ ttype, !@ params with
+    | Some t, Some p ->
+      let kind = unmarshal (t, p) in
+      let target = { start; size; kind } in
+      if next = null
+      then [ target ]
+      else target :: (read_targets dm_task next)
+    | _ -> [] in
   let read_info targets =
     let suspended = getf dm_info struct_dm_info_suspended <> 0 in
     let live_table = getf dm_info struct_dm_info_live_table in
