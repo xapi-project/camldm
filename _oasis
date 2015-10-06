@@ -13,6 +13,8 @@ Library               devmapper
   Path:               lib
   Modules:            S, Location, Striped, Target, Linux, Mock
   CSources:           camldm_stubs.c
+  ByteOpt:            -warn-error +1..45
+  NativeOpt:          -warn-error +1..45
   BuildDepends:       rpclib, rpclib.syntax, ctypes (>= 0.3.0), ctypes.foreign, sexplib, sexplib.syntax, stringext
 
 Executable lib_test
@@ -22,6 +24,8 @@ Executable lib_test
   Build$:             flag(tests)
   Custom:             true
   Install:            false
+  ByteOpt:            -warn-error +1..45
+  NativeOpt:          -warn-error +1..45
   BuildDepends:       devmapper, oUnit, re.str, lwt.unix, cstruct, cstruct.lwt
 
 Test lib_test
