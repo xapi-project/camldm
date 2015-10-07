@@ -236,40 +236,49 @@ let devices =
     ref (DeviceSet.make ())
 
 let create device targets =
+  devices := DeviceSet.load_file !persistent_fn;
   DeviceSet.create !devices device targets;
   DeviceSet.save_file !devices !persistent_fn
 
 let remove device =
+  devices := DeviceSet.load_file !persistent_fn;
   DeviceSet.remove !devices device;
   DeviceSet.save_file !devices !persistent_fn
 
 let reload device targets =
+  devices := DeviceSet.load_file !persistent_fn;
   DeviceSet.reload !devices device targets;
   DeviceSet.save_file !devices !persistent_fn
 
 let suspend device =
+  devices := DeviceSet.load_file !persistent_fn;
   DeviceSet.suspend !devices device;
   DeviceSet.save_file !devices !persistent_fn
 
 let resume device =
+  devices := DeviceSet.load_file !persistent_fn;
   DeviceSet.resume !devices device;
   DeviceSet.save_file !devices !persistent_fn
 
 let mknod device path mode =
+  devices := DeviceSet.load_file !persistent_fn;
   DeviceSet.mknod !devices device path mode;
   DeviceSet.save_file !devices !persistent_fn
 
 let stat device =
+  devices := DeviceSet.load_file !persistent_fn;
   let ret = DeviceSet.stat !devices device in
   DeviceSet.save_file !devices !persistent_fn;
   ret
 
 let ls () =
+  devices := DeviceSet.load_file !persistent_fn;
   let ret = DeviceSet.ls !devices () in
   DeviceSet.save_file !devices !persistent_fn;
   ret
 
 let clear () =
+  devices := DeviceSet.load_file !persistent_fn;
   DeviceSet.clear !devices ();
   DeviceSet.save_file !devices !persistent_fn
 
