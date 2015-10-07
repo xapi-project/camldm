@@ -18,7 +18,8 @@ Library               devmapper
   BuildDepends:       ctypes (>= 0.3.0), ctypes.foreign,
                       rpclib, rpclib.syntax,
                       sexplib, sexplib.syntax,
-                      stringext
+                      stringext,
+                      threads
 
 Executable lib_test
   CompiledObject:     best

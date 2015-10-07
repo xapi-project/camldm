@@ -235,7 +235,15 @@ let devices =
   with _ ->
     ref (DeviceSet.make ())
 
-let rmw f =
+let lock = Mutex.create ()
+
+let with_lock f =
+  Mutex.lock lock;
+  let res = begin try f () with exn -> Mutex.unlock lock; raise exn end; in
+  Mutex.unlock lock;
+  res
+
+let rmw f = with_lock @@ fun () ->
   devices := DeviceSet.load_file !persistent_fn;
   let res = f !devices in
   DeviceSet.save_file !devices !persistent_fn;
