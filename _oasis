@@ -15,7 +15,10 @@ Library               devmapper
   CSources:           camldm_stubs.c
   ByteOpt:            -warn-error +1..45
   NativeOpt:          -warn-error +1..45
-  BuildDepends:       rpclib, rpclib.syntax, ctypes (>= 0.3.0), ctypes.foreign, sexplib, sexplib.syntax, stringext
+  BuildDepends:       ctypes (>= 0.3.0), ctypes.foreign,
+                      rpclib, rpclib.syntax,
+                      sexplib, sexplib.syntax,
+                      stringext
 
 Executable lib_test
   CompiledObject:     best
@@ -26,7 +29,11 @@ Executable lib_test
   Install:            false
   ByteOpt:            -warn-error +1..45
   NativeOpt:          -warn-error +1..45
-  BuildDepends:       devmapper, oUnit, re.str, lwt.unix, cstruct, cstruct.lwt
+  BuildDepends:       devmapper,
+                      cstruct, cstruct.lwt,
+                      lwt.unix,
+                      oUnit,
+                      re.str
 
 Test lib_test
   Run$:               flag(tests)
