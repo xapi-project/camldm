@@ -235,56 +235,41 @@ let devices =
   with _ ->
     ref (DeviceSet.make ())
 
-let create device targets =
+let rmw f =
   devices := DeviceSet.load_file !persistent_fn;
-  DeviceSet.create !devices device targets;
-  DeviceSet.save_file !devices !persistent_fn
+  let res = f !devices in
+  DeviceSet.save_file !devices !persistent_fn;
+  res
+
+let create device targets =
+  rmw (fun devices -> DeviceSet.create devices device targets)
 
 let remove device =
-  devices := DeviceSet.load_file !persistent_fn;
-  DeviceSet.remove !devices device;
-  DeviceSet.save_file !devices !persistent_fn
+  rmw (fun devices -> DeviceSet.remove devices device)
 
 let reload device targets =
-  devices := DeviceSet.load_file !persistent_fn;
-  DeviceSet.reload !devices device targets;
-  DeviceSet.save_file !devices !persistent_fn
+  rmw (fun devices -> DeviceSet.reload devices device targets)
 
 let suspend device =
-  devices := DeviceSet.load_file !persistent_fn;
-  DeviceSet.suspend !devices device;
-  DeviceSet.save_file !devices !persistent_fn
+  rmw (fun devices -> DeviceSet.suspend devices device)
 
 let resume device =
-  devices := DeviceSet.load_file !persistent_fn;
-  DeviceSet.resume !devices device;
-  DeviceSet.save_file !devices !persistent_fn
+  rmw (fun devices -> DeviceSet.resume devices device)
 
 let mknod device path mode =
-  devices := DeviceSet.load_file !persistent_fn;
-  DeviceSet.mknod !devices device path mode;
-  DeviceSet.save_file !devices !persistent_fn
+  rmw (fun devices -> DeviceSet.mknod devices device path mode)
 
 let stat device =
-  devices := DeviceSet.load_file !persistent_fn;
-  let ret = DeviceSet.stat !devices device in
-  DeviceSet.save_file !devices !persistent_fn;
-  ret
+  rmw (fun devices -> DeviceSet.stat devices device)
 
 let ls () =
-  devices := DeviceSet.load_file !persistent_fn;
-  let ret = DeviceSet.ls !devices () in
-  DeviceSet.save_file !devices !persistent_fn;
-  ret
+  rmw (fun devices -> DeviceSet.ls devices ())
 
 let clear () =
-  devices := DeviceSet.load_file !persistent_fn;
-  DeviceSet.clear !devices ();
-  DeviceSet.save_file !devices !persistent_fn
+  rmw (fun devices -> DeviceSet.clear devices ())
 
 let save_file path =
   DeviceSet.save_file !devices path
 
 let load_file path =
   devices := DeviceSet.load_file path
-
