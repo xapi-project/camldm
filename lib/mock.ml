@@ -273,12 +273,6 @@ let clear () =
   DeviceSet.clear !devices ();
   DeviceSet.save_file !devices !persistent_fn
 
-let get_persistent () =
-  !persistent_fn
-
-let set_persistent filename =
-  persistent_fn := filename
-
 let save_file path =
   DeviceSet.save_file !devices path
 
