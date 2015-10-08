@@ -108,7 +108,7 @@ let ( |> ) a b = b a
 let colon = Re_str.regexp_string ":"
 
 let canonicalise x =
-  if not(Filename.is_relative x)
+  if not(Filename.is_implicit x)
   then x
   else begin
     (* Search the PATH and XCP_PATH for the executable *)
