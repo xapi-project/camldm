@@ -160,6 +160,27 @@ let test_real_mock () =
   let module DM = (val dm : Devmapper.S.DEVMAPPER) in
   ignore (DM.ls ())
 
+let test_thread_safe () =
+  let rec create_remove_loop prefix n =
+    if n <= 0 then ()
+    else
+      let name = Printf.sprintf "%s-%d" prefix n in
+      Mock.create name [];
+      assert_raises (Failure (name ^ " already exists")) (fun () ->
+        Mock.create name []);
+      assert_bool (name ^ " not in Mock.ls ()") (List.mem name (Mock.ls ()));
+      Thread.yield ();
+      Mock.remove name;
+      assert_bool (name ^ " in Mock.ls ()") (not (List.mem name (Mock.ls ())));
+      assert_raises (Failure (name ^ " does not exist")) (fun () ->
+        Mock.remove name);
+      create_remove_loop prefix (n - 1) in
+  Mock.clear ();
+  let t1 = Thread.create (fun () -> create_remove_loop "t1" 100) ()
+  and t2 = Thread.create (fun () -> create_remove_loop "t2" 100) () in
+  Thread.join t1;
+  Thread.join t2
+
 let suite = "devmapper_mock" >:::
   [
     "test_overlap" >:: test_overlap;
@@ -167,5 +188,5 @@ let suite = "devmapper_mock" >:::
     "test_create_remove" >:: test_create_remove;
     "test_load_save" >:: test_load_save;
     "test_real_mock" >:: test_real_mock;
+    "test_thread_safe" >:: test_thread_safe;
   ]
-
