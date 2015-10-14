@@ -112,43 +112,6 @@ let test_create_remove () =
   (* clear up *)
   Mock.clear ()
 
-let test_load_save () =
-  Mock.clear ();
-
-  let dev1_targets = [] in
-  let dev2_targets = [
-    make_linear 0 1024 "dev21" 0;
-    make_linear 1024 1024 "dev22" 0;
-  ] in
-  let dev3_targets = [
-    make_striped 0 1024 32 [make_location "dev31" 0; make_location "dev32" 512];
-    make_striped 1024 1024 32 [make_location "dev33" 0; make_location "dev34" 0];
-  ] in
-  Mock.create "dev1" dev1_targets;
-  Mock.create "dev2" dev2_targets;
-  Mock.create "dev3" dev3_targets;
-
-  let temp_file = Filename.temp_file "dm-mock" "" in
-  Mock.save_file temp_file;
-  Mock.load_file temp_file;
-
-  assert_equal 3 (List.length (Mock.ls ()));
-  assert_equal ["dev1";"dev2";"dev3"] (List.sort compare (Mock.ls ()));
-
-  let assert_targets_equal targets dev =
-    match Mock.stat dev with
-    | None -> failwith "Mock.stat yield None"
-    | Some info ->
-        assert_equal targets info.Mock.targets
-  in
-  assert_targets_equal dev1_targets "dev1";
-  assert_targets_equal dev2_targets "dev2";
-  assert_targets_equal dev3_targets "dev3";
-
-  (* clear up *)
-  Unix.unlink temp_file;
-  Mock.clear ()
-
 let test_real_mock () =
   let select which : (module Devmapper.S.DEVMAPPER) =
     if which then
@@ -200,7 +163,6 @@ let suite = "devmapper_mock" >:::
     "test_overlap" >:: test_overlap;
     "test_reload" >:: test_reload;
     "test_create_remove" >:: test_create_remove;
-    "test_load_save" >:: test_load_save;
     "test_real_mock" >:: test_real_mock;
     "test_thread_safe" >:: test_thread_safe;
   ]

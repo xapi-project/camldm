@@ -282,8 +282,3 @@ let ls () =
 let clear () =
   rmw (fun devices -> DeviceSet.clear devices ())
 
-let save_file path =
-  DeviceSet.save_file !devices path
-
-let load_file path =
-  devices := DeviceSet.load_file path
