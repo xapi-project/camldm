@@ -226,25 +226,31 @@ let persistent_fn =
   let fn = Filename.concat cwd "dm-mock" in
   ref fn
 
-let devices =
-  (* load the tables from disk when starting up, or make an empty table if
-   * the persistent file does not exist or is corrupted.
-   *)
-  try
-    ref (DeviceSet.load_file !persistent_fn)
-  with _ ->
-    ref (DeviceSet.make ())
+let devices = ref (DeviceSet.make ())
 
-let lock = Mutex.create ()
+let lock_m = Mutex.create ()
+let lock_fd = Unix.(openfile "dm-mock.lock" [O_CREAT; O_TRUNC; O_RDWR] 0o600)
 
 let with_lock f =
-  Mutex.lock lock;
-  let res = begin try f () with exn -> Mutex.unlock lock; raise exn end; in
-  Mutex.unlock lock;
+  Mutex.lock lock_m;
+  Unix.(lockf lock_fd F_LOCK 0);
+  let res =
+    begin
+      try f ()
+      with exn ->
+        Mutex.unlock lock_m;
+        Unix.(lockf lock_fd F_ULOCK 0);
+        raise exn
+    end in
+  Unix.(lockf lock_fd F_ULOCK 0);
+  Mutex.unlock lock_m;
   res
 
 let rmw f = with_lock @@ fun () ->
-  devices := DeviceSet.load_file !persistent_fn;
+  begin
+    try devices := DeviceSet.load_file !persistent_fn
+    with _ -> devices := DeviceSet.make ()
+  end;
   let res = f !devices in
   DeviceSet.save_file !devices !persistent_fn;
   res
