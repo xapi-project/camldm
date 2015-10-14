@@ -13,9 +13,12 @@ setup.ml: _oasis
 install: build
 	ocaml setup.ml -install
 
+TEST=ocaml setup.ml -test -runner sequential
+THREAD_TEST=$(shell ${TEST} -list-test | grep thread_safe)
 .PHONY: test
 test: build
-	sudo ocaml setup.ml -test
+	${TEST}
+	./parallel_run.native -- ${TEST} -only-test ${THREAD_TEST}
 
 .PHONY: uninstall
 uninstall:

@@ -6,5 +6,4 @@ let _ =
     Testlinux.suite;
     Testmock.suite;
   ] in
-  run_test_tt tests
-
+  OUnit2.run_test_tt_main (ounit2_of_ounit1 tests)

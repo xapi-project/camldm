@@ -36,6 +36,20 @@ Executable lib_test
                       oUnit,
                       re.str
 
+Executable parallel_run
+  CompiledObject:     best
+  Path:               lib_test
+  MainIs:             parallel_run.ml
+  Build$:             flag(tests)
+  Custom:             true
+  Install:            false
+  ByteOpt:            -warn-error +1..45
+  NativeOpt:          -warn-error +1..45
+  BuildDepends:       cmdliner,
+                      re.str,
+                      threads,
+                      unix
+
 Test lib_test
   Run$:               flag(tests)
   Command:            $lib_test
