@@ -15,3 +15,4 @@
 include S.DEVMAPPER
 
 val clear: unit -> unit
+val set_path: string -> unit

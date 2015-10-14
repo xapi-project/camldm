@@ -225,35 +225,51 @@ let persistent_fn =
   let cwd = Sys.getcwd () in
   let fn = Filename.concat cwd "dm-mock" in
   ref fn
+let persistent_fn_m = Mutex.create ()
 
 let devices = ref (DeviceSet.make ())
 
-let lock_m = Mutex.create ()
-let lock_fd = Unix.(openfile "dm-mock.lock" [O_CREAT; O_TRUNC; O_RDWR] 0o600)
+let file_locks : (string, Mutex.t) Hashtbl.t = Hashtbl.create 10
+let file_locks_m = Mutex.create ()
 
-let with_lock f =
-  Mutex.lock lock_m;
-  Unix.(lockf lock_fd F_LOCK 0);
-  let res =
+let finally f g = let r = begin try f () with e -> g (); raise e end in g (); r
+
+let with_mutex m f =
+  Mutex.lock m;
+  finally f (fun () -> Mutex.unlock m)
+
+let with_lockf path f =
+  let lock_fd = Unix.(openfile path [O_CREAT; O_TRUNC; O_RDWR] 0o600) in
+  finally (fun () ->
+    Unix.(lockf lock_fd F_LOCK 0);
+    finally f (fun () -> Unix.(lockf lock_fd F_ULOCK 0))
+  ) (fun () -> Unix.close lock_fd)
+
+let with_locks path f =
+  let lock_m =
+    with_mutex file_locks_m (fun () ->
+      try Hashtbl.find file_locks path
+      with Not_found ->
+        let m = Mutex.create () in
+        Hashtbl.add file_locks path m;
+        m
+    ) in
+  with_mutex lock_m (fun () ->
+    let lockf_path = path ^ ".lock" in
+    with_lockf lockf_path f
+  )
+
+let rmw f =
+  let path = with_mutex persistent_fn_m (fun () -> !persistent_fn) in
+  with_locks path (fun () ->
     begin
-      try f ()
-      with exn ->
-        Mutex.unlock lock_m;
-        Unix.(lockf lock_fd F_ULOCK 0);
-        raise exn
-    end in
-  Unix.(lockf lock_fd F_ULOCK 0);
-  Mutex.unlock lock_m;
-  res
-
-let rmw f = with_lock @@ fun () ->
-  begin
-    try devices := DeviceSet.load_file !persistent_fn
-    with _ -> devices := DeviceSet.make ()
-  end;
-  let res = f !devices in
-  DeviceSet.save_file !devices !persistent_fn;
-  res
+      try devices := DeviceSet.load_file path
+      with _ -> devices := DeviceSet.make ()
+    end;
+    let res = f !devices in
+    DeviceSet.save_file !devices path;
+    res
+  )
 
 let create device targets =
   rmw (fun devices -> DeviceSet.create devices device targets)
@@ -282,3 +298,5 @@ let ls () =
 let clear () =
   rmw (fun devices -> DeviceSet.clear devices ())
 
+let set_path path =
+  with_mutex persistent_fn_m (fun () -> persistent_fn := path)

@@ -157,6 +157,19 @@ let test_thread_safe () =
     exit 1
   end
 
+let test_separate_paths () =
+  Mock.set_path "dm-mock-1";
+  Mock.clear ();
+  Mock.create "dev1" [];
+  Mock.set_path "dm-mock-2";
+  Mock.clear ();
+  Mock.create "dev2" [];
+  Mock.set_path "dm-mock-1";
+  assert_equal ["dev1"] (Mock.ls ());
+  Mock.clear ();
+  Mock.set_path "dm-mock-2";
+  assert_equal ["dev2"] (Mock.ls ());
+  Mock.clear ()
 
 let suite = "devmapper_mock" >:::
   [
@@ -165,4 +178,5 @@ let suite = "devmapper_mock" >:::
     "test_create_remove" >:: test_create_remove;
     "test_real_mock" >:: test_real_mock;
     "test_thread_safe" >:: test_thread_safe;
+    "test_separate_paths" >:: test_separate_paths;
   ]
