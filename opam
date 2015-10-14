@@ -20,6 +20,7 @@ depends: [
   "lwt"
   "re"
   "stringext"
+  "cmdliner" {test}
 ] 
 os: ["linux"]
 depexts: [
