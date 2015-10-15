@@ -15,8 +15,8 @@ Library               devmapper
   CSources:           camldm_stubs.c
   ByteOpt:            -warn-error +1..45
   NativeOpt:          -warn-error +1..45
-  BuildDepends:       ctypes (>= 0.3.0), ctypes.foreign,
-                      rpclib, rpclib.syntax,
+  BuildDepends:       ctypes (>= 0.4.0), ctypes.foreign,
+                      rpclib (>= 1.5.0), rpclib.syntax,
                       sexplib, sexplib.syntax,
                       stringext,
                       threads
@@ -36,6 +36,18 @@ Executable lib_test
                       oUnit,
                       re.str
 
+Executable parallel_test
+  CompiledObject:     best
+  Path:               lib_test
+  MainIs:             testmock_parallel.ml
+  Build$:             flag(tests)
+  Custom:             true
+  Install:            false
+  ByteOpt:            -warn-error +1..45
+  NativeOpt:          -warn-error +1..45
+  BuildDepends:       devmapper,
+                      oUnit
+
 Executable parallel_run
   CompiledObject:     best
   Path:               lib_test
@@ -52,5 +64,10 @@ Executable parallel_run
 
 Test lib_test
   Run$:               flag(tests)
-  Command:            $lib_test
+  Command:            $lib_test -runner sequential
+  WorkingDirectory:   lib_test
+
+Test parallel_test
+  Run$:               flag(tests)
+  Command:            $parallel_run -- $parallel_test
   WorkingDirectory:   lib_test
