@@ -1,3 +1,6 @@
+0.11.1 (15-10-15)
+- Devmapper.Mock now only supports concurrency across processes, not pthreads
+
 0.11.0 (15-10-15)
 - Devmapper.Mock can now be used in parallel across threads and processes
 
