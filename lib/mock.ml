@@ -225,18 +225,10 @@ let persistent_fn =
   let cwd = Sys.getcwd () in
   let fn = Filename.concat cwd "dm-mock" in
   ref fn
-let persistent_fn_m = Mutex.create ()
 
 let devices = ref (DeviceSet.make ())
 
-let file_locks : (string, Mutex.t) Hashtbl.t = Hashtbl.create 10
-let file_locks_m = Mutex.create ()
-
 let finally f g = let r = begin try f () with e -> g (); raise e end in g (); r
-
-let with_mutex m f =
-  Mutex.lock m;
-  finally f (fun () -> Mutex.unlock m)
 
 let with_lockf path f =
   let lock_fd = Unix.(openfile path [O_CREAT; O_TRUNC; O_RDWR] 0o600) in
@@ -245,23 +237,10 @@ let with_lockf path f =
     finally f (fun () -> Unix.(lockf lock_fd F_ULOCK 0))
   ) (fun () -> Unix.close lock_fd)
 
-let with_locks path f =
-  let lock_m =
-    with_mutex file_locks_m (fun () ->
-      try Hashtbl.find file_locks path
-      with Not_found ->
-        let m = Mutex.create () in
-        Hashtbl.add file_locks path m;
-        m
-    ) in
-  with_mutex lock_m (fun () ->
-    let lockf_path = path ^ ".lock" in
-    with_lockf lockf_path f
-  )
-
 let rmw f =
-  let path = with_mutex persistent_fn_m (fun () -> !persistent_fn) in
-  with_locks path (fun () ->
+  let path = !persistent_fn in
+  let lockf_path = path ^ ".lock" in
+  with_lockf lockf_path (fun () ->
     begin
       try devices := DeviceSet.load_file path
       with _ -> devices := DeviceSet.make ()
@@ -299,4 +278,4 @@ let clear () =
   rmw (fun devices -> DeviceSet.clear devices ())
 
 let set_path path =
-  with_mutex persistent_fn_m (fun () -> persistent_fn := path)
+  persistent_fn := path
