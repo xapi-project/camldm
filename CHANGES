@@ -1,3 +1,6 @@
+0.11.0 (15-10-15)
+- Devmapper.Mock can now be used in parallel across threads and processes
+
 0.10.1 (14-9-2015)
 - stat now handles devices without targets without segfaulting
 
