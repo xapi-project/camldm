@@ -11,4 +11,5 @@ META
 setup.ml
 myocamlbuild.ml
 _tags
-configure
+Makefile
+dm-mock*

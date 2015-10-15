@@ -1,7 +1,25 @@
-opam-version: "1"
-maintainer: "jonathan.ludlam@eu.citrix.com"
+opam-version: "1.2"
+maintainer:   "jonathan.ludlam@eu.citrix.com"
+authors: [
+              "David Scott"
+              "Si Beaumont"
+              "Jon Ludlam"
+              "John Else"
+              "Kaifeng Zhu"
+]
+homepage:     "https://github.com/xapi-project/camldm"
+bug-reports:  "https://github.com/xapi-project/camldm/issues"
+dev-repo:     "https://github.com/xapi-project/camldm.git"
+
 build: [
+  ["./configure"]
   [make]
+]
+build-test: [
+  ["./configure" "--enable-tests"]
+  [make "test"]
+]
+install: [
   [make "install" "BINDIR=%{bin}%"]
 ]
 remove: [
@@ -9,22 +27,22 @@ remove: [
   ["ocamlfind" "remove" "devmapper"]
 ]
 depends: [
-  "ocamlfind"
-  "rpc" {>= "1.5.0"}
-  "sexplib"
+  "cstruct"
   "ctypes" {>= "0.4.0"}
   "ctypes-foreign"
-  "oasis"
-  "ounit"
-  "cstruct"
-  "lwt"
-  "re"
+  "rpc" {>= "1.5.0"}
+  "sexplib"
   "stringext"
+  "ocamlfind" {build}
+  "oasis" {build}
+  "cmdliner" {test}
+  "ounit" {test}
+  "lwt" {test}
+  "re" {test}
 ] 
-os: ["linux"]
+available: [os = "linux"]
 depexts: [
   [["debian"] ["libdevmapper-dev"]]
   [["ubuntu"] ["libdevmapper-dev"]]
   [["centos"] ["device-mapper-devel"]]
 ]
-

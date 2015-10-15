@@ -15,6 +15,4 @@
 include S.DEVMAPPER
 
 val clear: unit -> unit
-val save_file: string -> unit
-val load_file: string -> unit
-
+val set_path: string -> unit

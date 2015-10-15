@@ -225,63 +225,78 @@ let persistent_fn =
   let cwd = Sys.getcwd () in
   let fn = Filename.concat cwd "dm-mock" in
   ref fn
+let persistent_fn_m = Mutex.create ()
 
-let devices =
-  (* load the tables from disk when starting up, or make an empty table if
-   * the persistent file does not exist or is corrupted.
-   *)
-  try
-    ref (DeviceSet.load_file !persistent_fn)
-  with _ ->
-    ref (DeviceSet.make ())
+let devices = ref (DeviceSet.make ())
+
+let file_locks : (string, Mutex.t) Hashtbl.t = Hashtbl.create 10
+let file_locks_m = Mutex.create ()
+
+let finally f g = let r = begin try f () with e -> g (); raise e end in g (); r
+
+let with_mutex m f =
+  Mutex.lock m;
+  finally f (fun () -> Mutex.unlock m)
+
+let with_lockf path f =
+  let lock_fd = Unix.(openfile path [O_CREAT; O_TRUNC; O_RDWR] 0o600) in
+  finally (fun () ->
+    Unix.(lockf lock_fd F_LOCK 0);
+    finally f (fun () -> Unix.(lockf lock_fd F_ULOCK 0))
+  ) (fun () -> Unix.close lock_fd)
+
+let with_locks path f =
+  let lock_m =
+    with_mutex file_locks_m (fun () ->
+      try Hashtbl.find file_locks path
+      with Not_found ->
+        let m = Mutex.create () in
+        Hashtbl.add file_locks path m;
+        m
+    ) in
+  with_mutex lock_m (fun () ->
+    let lockf_path = path ^ ".lock" in
+    with_lockf lockf_path f
+  )
+
+let rmw f =
+  let path = with_mutex persistent_fn_m (fun () -> !persistent_fn) in
+  with_locks path (fun () ->
+    begin
+      try devices := DeviceSet.load_file path
+      with _ -> devices := DeviceSet.make ()
+    end;
+    let res = f !devices in
+    DeviceSet.save_file !devices path;
+    res
+  )
 
 let create device targets =
-  DeviceSet.create !devices device targets;
-  DeviceSet.save_file !devices !persistent_fn
+  rmw (fun devices -> DeviceSet.create devices device targets)
 
 let remove device =
-  DeviceSet.remove !devices device;
-  DeviceSet.save_file !devices !persistent_fn
+  rmw (fun devices -> DeviceSet.remove devices device)
 
 let reload device targets =
-  DeviceSet.reload !devices device targets;
-  DeviceSet.save_file !devices !persistent_fn
+  rmw (fun devices -> DeviceSet.reload devices device targets)
 
 let suspend device =
-  DeviceSet.suspend !devices device;
-  DeviceSet.save_file !devices !persistent_fn
+  rmw (fun devices -> DeviceSet.suspend devices device)
 
 let resume device =
-  DeviceSet.resume !devices device;
-  DeviceSet.save_file !devices !persistent_fn
+  rmw (fun devices -> DeviceSet.resume devices device)
 
 let mknod device path mode =
-  DeviceSet.mknod !devices device path mode;
-  DeviceSet.save_file !devices !persistent_fn
+  rmw (fun devices -> DeviceSet.mknod devices device path mode)
 
 let stat device =
-  let ret = DeviceSet.stat !devices device in
-  DeviceSet.save_file !devices !persistent_fn;
-  ret
+  rmw (fun devices -> DeviceSet.stat devices device)
 
 let ls () =
-  let ret = DeviceSet.ls !devices () in
-  DeviceSet.save_file !devices !persistent_fn;
-  ret
+  rmw (fun devices -> DeviceSet.ls devices ())
 
 let clear () =
-  DeviceSet.clear !devices ();
-  DeviceSet.save_file !devices !persistent_fn
+  rmw (fun devices -> DeviceSet.clear devices ())
 
-let get_persistent () =
-  !persistent_fn
-
-let set_persistent filename =
-  persistent_fn := filename
-
-let save_file path =
-  DeviceSet.save_file !devices path
-
-let load_file path =
-  devices := DeviceSet.load_file path
-
+let set_path path =
+  with_mutex persistent_fn_m (fun () -> persistent_fn := path)

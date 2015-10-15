@@ -1,6 +1,6 @@
 OASISFormat:  0.3
 Name:         devmapper
-Version:      0.10.1
+Version:      0.11.0
 Synopsis:     Bindings to libdevmapper
 License:      LGPL-2.1 with OCaml linking exception
 Authors:      various
@@ -13,7 +13,13 @@ Library               devmapper
   Path:               lib
   Modules:            S, Location, Striped, Target, Linux, Mock
   CSources:           camldm_stubs.c
-  BuildDepends:       rpclib, rpclib.syntax, ctypes (>= 0.3.0), ctypes.foreign, sexplib, sexplib.syntax, stringext
+  ByteOpt:            -warn-error +1..45
+  NativeOpt:          -warn-error +1..45
+  BuildDepends:       ctypes (>= 0.4.0), ctypes.foreign,
+                      rpclib (>= 1.5.0), rpclib.syntax,
+                      sexplib, sexplib.syntax,
+                      stringext,
+                      threads
 
 Executable lib_test
   CompiledObject:     best
@@ -22,9 +28,46 @@ Executable lib_test
   Build$:             flag(tests)
   Custom:             true
   Install:            false
-  BuildDepends:       devmapper, oUnit, re.str, lwt.unix, cstruct, cstruct.lwt
+  ByteOpt:            -warn-error +1..45
+  NativeOpt:          -warn-error +1..45
+  BuildDepends:       devmapper,
+                      cstruct, cstruct.lwt,
+                      lwt.unix,
+                      oUnit,
+                      re.str
+
+Executable parallel_test
+  CompiledObject:     best
+  Path:               lib_test
+  MainIs:             testmock_parallel.ml
+  Build$:             flag(tests)
+  Custom:             true
+  Install:            false
+  ByteOpt:            -warn-error +1..45
+  NativeOpt:          -warn-error +1..45
+  BuildDepends:       devmapper,
+                      oUnit
+
+Executable parallel_run
+  CompiledObject:     best
+  Path:               lib_test
+  MainIs:             parallel_run.ml
+  Build$:             flag(tests)
+  Custom:             true
+  Install:            false
+  ByteOpt:            -warn-error +1..45
+  NativeOpt:          -warn-error +1..45
+  BuildDepends:       cmdliner,
+                      re.str,
+                      threads,
+                      unix
 
 Test lib_test
   Run$:               flag(tests)
-  Command:            $lib_test
+  Command:            $lib_test -runner sequential
+  WorkingDirectory:   lib_test
+
+Test parallel_test
+  Run$:               flag(tests)
+  Command:            $parallel_run -- $parallel_test
   WorkingDirectory:   lib_test

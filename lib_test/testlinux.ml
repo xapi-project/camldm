@@ -53,7 +53,7 @@ let create_destroy () =
           finally
             (fun () ->
               let all = ls () in
-              stat name;
+              stat name |> ignore;
               if not(List.mem name all)
               then failwith (Printf.sprintf "%s not in [ %s ]" name (String.concat "; " all))
             ) (fun () -> remove name)
