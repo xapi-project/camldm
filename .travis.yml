@@ -1,6 +1,10 @@
 language: c
-script: bash -ex .travis-ci.sh
 sudo: required
+dist: trusty
+install:
+  - wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-opam.sh
+script: bash -ex .travis-opam.sh
 env:
-  - OCAML_VERSION=4.01.0 OPAM_VERSION=1.2.0
-  - OCAML_VERSION=4.02.0 OPAM_VERSION=1.2.0
+  global:
+    - PACKAGE=test-camldm
+    - TESTS=false # Travis does not have dm or loop drivers => linux tests fail
